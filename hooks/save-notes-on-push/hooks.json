@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"$HOME/.agents/hooks/save-notes-on-push/save-notes-on-push.cjs\"" }]
+      }
+    ]
+  }
+}
