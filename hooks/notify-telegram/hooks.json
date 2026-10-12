@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      { "hooks": [{ "type": "command", "command": "\"$HOME/.agents/hooks/notify-telegram/notify-telegram.sh\"" }] }
+    ]
+  }
+}
