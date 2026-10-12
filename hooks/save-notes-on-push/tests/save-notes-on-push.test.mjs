@@ -55,3 +55,22 @@ test('reminder only for a Bash git push in an opted-in repo', () => {
   assert.equal(hook.reminderFor({ ...push, tool_input: { command: 'git status' } }), null);
   assert.equal(hook.reminderFor({ ...push, cwd: tmpdir() }), null);
 });
+
+test('a push chained after other commands still triggers the reminder', () => {
+  const root = repoWithNotes();
+  for (const command of [
+    'git commit -m wip && git push',
+    'git add a.md && git commit -m x && git push origin main',
+    `cd /tmp; git -C ${root} push`,
+    'git commit -m x || true; git push --force-with-lease',
+  ]) {
+    assert.match(hook.reminderFor({ tool_name: 'Bash', tool_input: { command }, cwd: root }) || '', /save-notes/, command);
+  }
+});
+
+test('chains without a git push stay silent', () => {
+  const root = repoWithNotes();
+  for (const command of ['git commit -m "push later" && echo done', 'git log --grep push | head', 'echo git push']) {
+    assert.equal(hook.reminderFor({ tool_name: 'Bash', tool_input: { command }, cwd: root }), null, command);
+  }
+});
