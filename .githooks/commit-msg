@@ -1,0 +1,6 @@
+#!/bin/sh
+# Opt in once per clone: git config core.hooksPath .githooks
+# Commit messages are published with the history; scan them before the commit exists.
+set -eu
+root=$(git rev-parse --show-toplevel)
+python3 "$root/scripts/leak_scan.py" --message "$1" --repo "$root"

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Opt in once per clone: git config core.hooksPath .githooks
+# Last local gate before the history becomes public: every ref, private patterns required.
+set -eu
+root=$(git rev-parse --show-toplevel)
+python3 "$root/scripts/leak_scan.py" --history --require-private --repo "$root"
