@@ -95,7 +95,8 @@ The repo is public from the first commit, and a pushed secret survives in forks 
 the guard is mechanical and runs before anything leaves the machine.
 
 - **Public patterns**, committed: absolute home paths (`/Users/<x>/`, `/home/<x>/`), e-mail addresses other than
-  GitHub noreply, private-network URLs, and gitleaks' default secret rules.
+  GitHub noreply and `example.*`, RFC 1918 addresses (loopback is generic and allowed), and gitleaks' default
+  secret rules. File names are scanned as well as content.
 - **Private patterns**, never committed: employer, client and system names. The list itself would disclose what
   it protects. Locally it lives in a git-ignored `.leakguard.local`; in CI it comes from a repository secret
   `LEAKGUARD_PATTERNS`. CI fails if the secret is missing, so the private check cannot be skipped silently.
