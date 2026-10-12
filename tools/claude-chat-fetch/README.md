@@ -37,7 +37,8 @@ node tools/claude-chat-fetch/fetch-chat.mjs https://claude.ai/chat/<uuid>
 ```
 
 It prints the path of `chat.md`. Next to it are `raw.json`, `meta.json` and a `files/` folder with attachments.
-Fetched chats are cached in `~/.cache/claude-chat-fetch/<uuid>/` (override with `CLAUDE_CHAT_FETCH_CACHE`).
+Fetched chats are cached in `~/.cache/claude-chat-fetch/<uuid>/`. `CLAUDE_CHAT_FETCH_CACHE` replaces the
+`claude-chat-fetch` folder itself, not its parent; `clean.mjs` only lists and deletes UUID-named folders in it.
 
 ```sh
 node tools/claude-chat-fetch/clean.mjs                    # list cached chats

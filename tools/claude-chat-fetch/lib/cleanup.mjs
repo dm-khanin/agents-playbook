@@ -2,6 +2,10 @@ import { readdirSync, statSync, readFileSync, rmSync, existsSync } from 'node:fs
 import { join } from 'node:path';
 import { ChatReaderError } from './errors.mjs';
 
+// Chat folders are named by conversation UUID. Anything else under the cache root is not ours to
+// list or delete, which matters when CLAUDE_CHAT_FETCH_CACHE points at a shared directory.
+const CHAT_DIR_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function folderSizeBytes(path) {
   let total = 0;
   for (const entry of readdirSync(path, { withFileTypes: true })) {
@@ -31,7 +35,7 @@ function describe(cacheDir, uuid) {
 export function listCached(cacheDir) {
   if (!existsSync(cacheDir)) return [];
   return readdirSync(cacheDir, { withFileTypes: true })
-    .filter(e => e.isDirectory())
+    .filter(e => e.isDirectory() && CHAT_DIR_RE.test(e.name))
     .map(e => describe(cacheDir, e.name));
 }
 
