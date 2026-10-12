@@ -50,7 +50,7 @@ Copying is the default. Symlinks are known to work in DeepSeek Harness, and Gemi
 | DeepSeek Harness | `~/.agents/AGENTS.md` |
 | OpenCode | `~/.config/opencode/AGENTS.md` |
 | Claude Code | `~/.agents/AGENTS.md`, plus the line `@~/.agents/AGENTS.md` in `~/.claude/CLAUDE.md` |
-| Gemini CLI | `~/.agents/AGENTS.md`, imported from `~/.gemini/GEMINI.md` or listed in `context.fileName` |
+| Gemini CLI | `~/.agents/AGENTS.md`, plus an `@` import of its absolute path in `~/.gemini/GEMINI.md` |
 
 **Hooks and tools.** Copy them to `~/.agents/hooks/` and `~/.agents/tools/`, where the shipped `hooks.json`
 snippets point, and follow each item's README for settings and MCP configuration.
