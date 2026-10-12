@@ -10,8 +10,8 @@ shell hooks.
 
 ## How it decides
 
-1. The tool call is a shell command whose git subcommand is `push`, even after git-level flags such as
-   `git -C <dir> push` or `git -c key=value push`.
+1. The tool call is a shell command line with a `git push` in it, alone or chained (`git commit -m x && git push`),
+   including after git-level flags such as `git -C <dir> push` or `git -c key=value push`.
 2. The repository is the `-C` directory if given, otherwise the working directory. The hook walks up at most five
    levels looking for `.agents/notes/INDEX.md` or `.claude/notes/INDEX.md`. That file is the opt-in.
 3. If both hold, it returns the reminder as additional context for the agent.

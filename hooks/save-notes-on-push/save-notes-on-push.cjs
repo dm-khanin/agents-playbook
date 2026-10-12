@@ -50,10 +50,20 @@ const GIT_LEVEL_FLAGS_WITH_VALUE = new Set([
   '--list-cmds',
 ]);
 
+// Shell control operators that start a new command. Splitting on them is approximate (it ignores
+// quoting), which errs towards silence: a fragment from inside a quoted string rarely starts with `git`.
+const COMMAND_SEPARATOR = /&&|\|\||;|\||\n/;
+
+// Returns the arguments after `git` for the git command in a shell line, preferring a `push` when the
+// line chains several commands (`git commit -m x && git push`). Null when no command starts with `git`.
 function tokenizeGitArgs(command) {
-  const match = command.match(/(?:^|[\s;&|])git\s+(.+)$/);
-  if (!match) return null;
-  return match[1].trim().split(/\s+/);
+  const gitCommands = command
+    .split(COMMAND_SEPARATOR)
+    .map((segment) => segment.trim().split(/\s+/))
+    .filter((tokens) => tokens[0] === 'git' && tokens.length > 1)
+    .map((tokens) => tokens.slice(1));
+  if (gitCommands.length === 0) return null;
+  return gitCommands.find((tokens) => findSubcommand(tokens) === 'push') || gitCommands[0];
 }
 
 function findSubcommand(tokens) {
