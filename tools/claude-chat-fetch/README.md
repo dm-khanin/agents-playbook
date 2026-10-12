@@ -3,7 +3,8 @@
 Fetches one of your own claude.ai conversations and renders it as Markdown, with attachments, pasted content and
 artifacts saved beside it, so an agent can read a chat you point it at.
 
-Works with: Claude Code (used). Any harness that can run a shell command and read a file.
+Works with: Claude Code (adapted from a tool in daily use there; the configurable paths are unit-tested). Any
+harness that can run a shell command and read a file.
 
 > **Caveat.** This uses claude.ai's undocumented web endpoints with your own browser session. It can break
 > without notice, and it is meant only for reading your own conversations.

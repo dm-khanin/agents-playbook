@@ -4,7 +4,7 @@ After a successful `git push`, reminds the agent to write or update a session no
 [`save-notes`](../../skills/save-notes/SKILL.md) skill. It stays silent everywhere else: other tools, other git
 commands, `push` appearing inside a commit message or a search pattern, and repositories without notes.
 
-Works with: Claude Code (used). DeepSeek Harness through its Claude Code hook bridge (format-compatible,
+Works with: Claude Code (adapted from a hook in daily use there; this version is unit-tested). DeepSeek Harness through its Claude Code hook bridge (format-compatible,
 untested). Gemini CLI would need the event renamed to `AfterTool` (untested). OpenCode: not supported, it has no
 shell hooks.
 
