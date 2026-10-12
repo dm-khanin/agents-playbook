@@ -53,13 +53,16 @@ matched text, because a public repository's CI logs are public. CI fails when th
 **Consequences.** Pull requests from forks receive no secrets, so their leak-scan job fails by design: outside
 contributions cannot bypass the private check.
 
-## D7. CI is the enforcement point
+## D7. Local hooks are the last gate; CI is the backstop
 
-**Context.** Git hooks do not travel with a clone, so a pre-commit hook protects only the clones that opted in.
-**Decision.** CI scans the whole tree and the full history on every push and pull request. The pre-commit hook
-runs the same scanner on staged files as fast local feedback.
-**Consequences.** A leak that slips past a local commit is still stopped before it merges, but not before it is
-pushed to a branch, so pushing stays a deliberate step.
+**Context.** A push to a public repository publishes its content at once, before any CI result, and git hooks do
+not travel with a clone.
+**Decision.** Three local hooks, enabled once per clone: pre-commit scans staged files, commit-msg scans the
+message, and pre-push scans the whole history with private patterns required, which makes it the last gate before
+publication. CI repeats the tree and history scans, adds gitleaks, and runs on every push to any branch and on
+every pull request, for clones that never enabled the hooks.
+**Consequences.** A clone without the hooks can still publish a leak, and CI can then only report it; the fix is a
+history rewrite. The one-time setup in `AGENTS.md` is therefore a precondition for pushing.
 
 ## D8. Global rules are short directives
 
