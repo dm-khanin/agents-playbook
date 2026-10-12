@@ -105,7 +105,6 @@ the guard is mechanical and runs before anything leaves the machine.
 - **Intentional matches** (this document describing a pattern, the scanner's own test fixtures) are listed in a
   committed `.leakguard-allow` by path and pattern. Every entry is visible in review; a whole-file or wildcard
   exemption is not allowed.
-- **Commit identity:** this repo's commits use the GitHub noreply address.
 
 ## 7. CI
 
@@ -147,7 +146,6 @@ symlinks, the instruction is to copy.
 
 - [ ] `leak-scan` passes with the private pattern list, and fails on a planted fixture.
 - [ ] Manual read of every file for anything the patterns cannot know about.
-- [ ] `git log -p` contains no author e-mail other than the noreply address.
 - [ ] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [ ] Every tool's README commands run as written on a clean shell.
 - [ ] CI is green on the pushed branch, including the private-pattern step.
