@@ -34,7 +34,8 @@ function writeArtifacts({ conversation, manifest, cacheDir }) {
   for (const [id, list] of versions) {
     if (id === 'meta') continue;
     const m = versions.meta?.get(id) ?? {};
-    const slug = slugify(m.title) || id;
+    // The id is model-chosen text: slugify it like the title so it can never name a path outside files/.
+    const slug = slugify(m.title) || slugify(id) || 'untitled';
     const ext = extensionForArtifact(m);
     const finalName = `artifact-${slug}.${ext}`;
     const finalContent = list[list.length - 1].content;
