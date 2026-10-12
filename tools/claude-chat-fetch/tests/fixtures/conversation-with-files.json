@@ -1,0 +1,29 @@
+{
+  "uuid": "abc-1",
+  "name": "Chat with files",
+  "created_at": "2026-04-12T10:00:00Z",
+  "updated_at": "2026-04-12T10:05:00Z",
+  "projects_v2_uuid": null,
+  "chat_messages": [
+    {
+      "uuid": "msg-1",
+      "sender": "human",
+      "content": [{ "type": "text", "text": "Here is a screenshot" }],
+      "attachments": [],
+      "files_v2": [
+        {
+          "file_uuid": "file-aaa",
+          "file_name": "screenshot.png",
+          "file_kind": "image",
+          "file_size": 234000
+        },
+        {
+          "file_uuid": "file-bbb",
+          "file_name": "log.txt",
+          "file_kind": "text",
+          "file_size": 12000
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "uuid": "cf-1",
+  "name": "Created files demo",
+  "created_at": "2026-04-12T10:00:00Z",
+  "updated_at": "2026-04-12T10:05:00Z",
+  "projects_v2_uuid": null,
+  "chat_messages": [
+    { "uuid": "m1", "sender": "human",
+      "content": [{ "type": "text", "text": "make me a script" }],
+      "attachments": [], "files_v2": [] },
+    { "uuid": "m2", "sender": "assistant",
+      "content": [
+        { "type": "text", "text": "Here you go" },
+        { "type": "tool_use", "name": "create_file",
+          "input": { "description": "creating script",
+                     "path": "/home/claude/deploy.sh",
+                     "file_text": "#!/bin/bash\necho hello\n" } }
+      ],
+      "attachments": [], "files_v2": [] },
+    { "uuid": "m3", "sender": "assistant",
+      "content": [
+        { "type": "tool_use", "name": "create_file",
+          "input": { "description": "creating doc",
+                     "path": "/home/claude/notes.md",
+                     "file_text": "# Notes\nhello\n" } }
+      ],
+      "attachments": [], "files_v2": [] }
+  ]
+}

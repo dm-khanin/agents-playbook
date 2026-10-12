@@ -1,0 +1,23 @@
+{
+  "uuid": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "name": "Hello chat",
+  "created_at": "2026-04-12T10:00:00Z",
+  "updated_at": "2026-04-12T10:05:00Z",
+  "projects_v2_uuid": null,
+  "chat_messages": [
+    {
+      "uuid": "msg-1",
+      "sender": "human",
+      "content": [{ "type": "text", "text": "Hi Claude" }],
+      "attachments": [],
+      "files_v2": []
+    },
+    {
+      "uuid": "msg-2",
+      "sender": "assistant",
+      "content": [{ "type": "text", "text": "Hello!" }],
+      "attachments": [],
+      "files_v2": []
+    }
+  ]
+}

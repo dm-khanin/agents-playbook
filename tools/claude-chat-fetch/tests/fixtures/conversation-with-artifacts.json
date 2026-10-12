@@ -1,0 +1,48 @@
+{
+  "uuid": "a-1",
+  "name": "Artifacts demo",
+  "created_at": "2026-04-12T10:00:00Z",
+  "updated_at": "2026-04-12T10:05:00Z",
+  "projects_v2_uuid": null,
+  "chat_messages": [
+    {
+      "uuid": "m1", "sender": "human",
+      "content": [{ "type": "text", "text": "make a script" }],
+      "attachments": [], "files_v2": []
+    },
+    {
+      "uuid": "m2", "sender": "assistant",
+      "content": [
+        { "type": "text", "text": "Here is v1" },
+        { "type": "tool_use", "name": "artifacts",
+          "input": { "command": "create", "id": "art-1",
+                     "title": "Payment Validator", "type": "application/vnd.ant.code",
+                     "language": "typescript", "content": "console.log('v1');" } }
+      ],
+      "attachments": [], "files_v2": []
+    },
+    {
+      "uuid": "m3", "sender": "human",
+      "content": [{ "type": "text", "text": "make it better" }],
+      "attachments": [], "files_v2": []
+    },
+    {
+      "uuid": "m4", "sender": "assistant",
+      "content": [
+        { "type": "tool_use", "name": "artifacts",
+          "input": { "command": "rewrite", "id": "art-1",
+                     "content": "console.log('v2 better');" } }
+      ],
+      "attachments": [], "files_v2": []
+    },
+    {
+      "uuid": "m5", "sender": "assistant",
+      "content": [
+        { "type": "tool_use", "name": "artifacts",
+          "input": { "command": "update", "id": "art-1",
+                     "old_str": "v2 better", "new_str": "v3 final" } }
+      ],
+      "attachments": [], "files_v2": []
+    }
+  ]
+}
