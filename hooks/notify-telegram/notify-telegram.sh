@@ -218,7 +218,7 @@ if [ "$DECISION" = "allow" ]; then
   exit 0
 elif [ "$DECISION" = "always" ]; then
   jq -n --argjson suggestions "$PERM_SUGGESTIONS" \
-    '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "allow"}, updatedPermissions: $suggestions}}'
+    '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "allow", updatedPermissions: $suggestions}}}'
   exit 0
 elif [ "$DECISION" = "deny" ]; then
   jq -n '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "deny"}}}'
