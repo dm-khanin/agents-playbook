@@ -3,7 +3,7 @@
 
 Environment:
   FAKE_TG_STATE     directory for the call log and the captured request id
-  FAKE_TG_SCENARIO  allow | always | deny | silent: what the user "presses"
+  FAKE_TG_SCENARIO  allow | always | deny | silent | foreign: what the user "presses"
 """
 from __future__ import annotations
 
@@ -38,7 +38,10 @@ def main(argv: list[str]) -> int:
             time.sleep(0.2)
             print(json.dumps({"ok": True, "result": []}))
         else:
-            data = f"{req_file.read_text(encoding='utf-8')}:{scenario}"
+            if scenario == "foreign":
+                data = "perm_1_1:allow"  # a button from some other, older request
+            else:
+                data = f"{req_file.read_text(encoding='utf-8')}:{scenario}"
             update = {"update_id": 41, "callback_query": {"id": "cb-1", "data": data}}
             print(json.dumps({"ok": True, "result": [update]}))
     else:

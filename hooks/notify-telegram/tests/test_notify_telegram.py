@@ -66,12 +66,14 @@ class NotifyTelegramTest(unittest.TestCase):
     def test_allow(self):
         out = self.decision(self.run_hook("allow"))
         self.assertEqual(out["decision"]["behavior"], "allow")
-        self.assertNotIn("updatedPermissions", out)
+        self.assertNotIn("updatedPermissions", out["decision"])
 
     def test_always_allow_returns_the_suggested_rules(self):
         out = self.decision(self.run_hook("always"))
         self.assertEqual(out["decision"]["behavior"], "allow")
-        self.assertEqual(out["updatedPermissions"], REQUEST["permission_suggestions"])
+        # Claude Code reads the rules to persist from inside the allow decision.
+        self.assertEqual(out["decision"]["updatedPermissions"], REQUEST["permission_suggestions"])
+        self.assertNotIn("updatedPermissions", out)
 
     def test_deny(self):
         out = self.decision(self.run_hook("deny"))
@@ -86,6 +88,11 @@ class NotifyTelegramTest(unittest.TestCase):
         methods = [c["method"] for c in self.calls()]
         self.assertIn("sendMessage", methods)
         self.assertEqual(methods[-1], "editMessageText", "the message is marked as timed out")
+
+    def test_button_from_another_request_does_not_decide_this_one(self):
+        result = self.run_hook("foreign")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.strip(), "")
 
     def test_missing_token_exits_without_calling_telegram(self):
         result = self.run_hook("allow", token=None)
