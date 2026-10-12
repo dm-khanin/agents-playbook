@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: draft for review · 2026-10-12
+Status: implemented in v1 · 2026-10
 
 ## 1. Purpose
 
@@ -52,7 +52,7 @@ agents-playbook/
 ├── hooks/<name>/        hook script + hooks.json snippet + README
 ├── docs/                design.md, decisions.md, harness-matrix.md
 ├── scripts/             repo tooling: leak scan, skill lint, their tests
-├── .githooks/           opt-in pre-commit running the same checks as CI
+├── .githooks/           opt-in pre-commit, commit-msg and pre-push guards
 └── .github/workflows/   CI
 ```
 
@@ -94,25 +94,29 @@ but each is a rewrite from scratch. Later, on request.
 The repo is public from the first commit, and a pushed secret survives in forks and caches even after removal, so
 the guard is mechanical and runs before anything leaves the machine.
 
-- **Public patterns**, committed: absolute home paths (`/Users/<x>/`, `/home/<x>/`), e-mail addresses other than
+- **Public patterns**, committed: absolute home paths (`/Users/<x>`, `/home/<x>`, `C:\Users\<x>`), e-mail addresses other than
   GitHub noreply and `example.*`, RFC 1918 addresses (loopback is generic and allowed), and gitleaks' default
   secret rules. File names are scanned as well as content.
 - **Private patterns**, never committed: employer, client and system names. The list itself would disclose what
   it protects. Locally it lives in a git-ignored `.leakguard.local`; in CI it comes from a repository secret
   `LEAKGUARD_PATTERNS`. CI fails if the secret is missing, so the private check cannot be skipped silently.
-- **Where it runs:** `scripts/leak-scan` scans the staged diff in pre-commit and the whole tree plus history in CI.
-  The pre-commit hook is opt-in per clone (`git config core.hooksPath .githooks`), because git does not carry hooks
-  across clones. CI is the backstop.
+- **Nothing private is echoed.** A private finding is reported by pattern position only; a line that matches a
+  private pattern prints no excerpt for any finding on it; a matching file path is shown as a hash. `--reveal`
+  lifts this for local investigation and is never used in CI.
+- **Where it runs:** `scripts/leak_scan.py` scans staged files in pre-commit, the message in commit-msg and the
+  whole history with private patterns required in pre-push, which is the last gate before anything is published.
+  The hooks are opt-in per clone (`git config core.hooksPath .githooks`), because git does not carry hooks across
+  clones; CI repeats the tree and history scans as the backstop for clones without them.
 - **Intentional matches** (this document describing a pattern, the scanner's own test fixtures) are listed in a
   committed `.leakguard-allow` by path and pattern. Every entry is visible in review; a whole-file or wildcard
   exemption is not allowed.
 
 ## 7. CI
 
-One workflow on push and pull request:
+One workflow on every push and pull request:
 
-1. `leak-scan` over the tree and history, public and private patterns, plus gitleaks.
-2. `skill-lint`: frontmatter present, `name` rules from §4, directory depth.
+1. `scripts/leak_scan.py` over the tree and history, public and private patterns, plus gitleaks.
+2. `scripts/skill_lint.py`: frontmatter present, `name` rules from §4, directory depth.
 3. `shellcheck` on shell scripts.
 4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
    built-in test runner, so CI has no dependency installs beyond what a tool already declares.
@@ -127,13 +131,13 @@ Each check has a negative test: a fixture that must fail. A check that cannot go
 4. Commands are skills.
 5. Hooks use the Claude Code format, because two harnesses read it.
 6. The private denylist never enters the repo.
-7. CI, not the pre-commit hook, is the enforcement point.
+7. Local hooks are the last gate before publication; CI is the backstop.
 8. Global rules are short directives, not prose.
 
 ## 9. Adding content later
 
 `AGENTS.md` at the root is the contract an agent follows when asked to add something: where each kind of item
-goes, the conventions in §4, the support line, running `scripts/leak-scan` and `scripts/skill-lint` before
+goes, the conventions in §4, the support line, running `scripts/leak_scan.py` and `scripts/skill_lint.py` before
 committing, and one item per commit with a Conventional Commit message. It is written so that any of the four
 harnesses can follow it without other context.
 
@@ -145,7 +149,7 @@ symlinks, the instruction is to copy.
 
 ## 11. Verification before the first push
 
-- [ ] `leak-scan` passes with the private pattern list, and fails on a planted fixture.
+- [ ] `scripts/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
 - [ ] Manual read of every file for anything the patterns cannot know about.
 - [ ] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [ ] Every tool's README commands run as written on a clean shell.
