@@ -1,0 +1,12 @@
+# Private leak-guard patterns: never committed (see docs/design.md §6)
+.leakguard.local
+
+# Secrets and caches that tools create next to themselves
+.session
+*.env
+cache/
+
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
