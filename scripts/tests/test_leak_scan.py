@@ -110,11 +110,58 @@ class LeakScanTest(unittest.TestCase):
         commit_file(self.repo, "a.md", PRIVATE_WORD + "\n")
         self.assertIn("private#1", scan(self.repo, "--tree").stdout)
 
-    def test_private_word_in_file_name_is_flagged(self):
+    def test_private_word_in_file_name_is_flagged_without_echo(self):
         commit_file(self.repo, "notes/" + PRIVATE_WORD + "-plan.md", "nothing here\n")
         result = scan(self.repo, "--tree", patterns=PRIVATE_WORD)
         self.assertEqual(result.returncode, 1)
         self.assertIn(":0: private#1", result.stdout)
+        self.assertNotIn(PRIVATE_WORD, (result.stdout + result.stderr).lower())
+
+    def test_public_excerpt_is_dropped_when_a_private_pattern_matches_the_line(self):
+        commit_file(self.repo, "mail.md", "write to dev" + "@" + PRIVATE_WORD + ".io\n")
+        result = scan(self.repo, "--tree", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("mail.md:1: email", result.stdout)
+        self.assertIn("mail.md:1: private#1", result.stdout)
+        self.assertNotIn(PRIVATE_WORD, (result.stdout + result.stderr).lower())
+
+    def test_private_path_in_history_is_not_echoed(self):
+        commit_file(self.repo, PRIVATE_WORD + "/notes.md", "see " + HOME_PATH + "\n")
+        result = scan(self.repo, "--history", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("home-path", result.stdout)
+        self.assertNotIn(PRIVATE_WORD, (result.stdout + result.stderr).lower())
+
+    def test_reveal_prints_real_paths_and_excerpts_for_local_use(self):
+        commit_file(self.repo, "notes/" + PRIVATE_WORD + "-plan.md", "mail dev" + "@" + PRIVATE_WORD + ".io\n")
+        result = scan(self.repo, "--tree", "--reveal", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("notes/" + PRIVATE_WORD + "-plan.md:1: email", result.stdout)
+
+    def test_home_path_without_trailing_slash_is_flagged(self):
+        commit_file(self.repo, "a.sh", "export HOME=" + "/home" + "/bob\ncd " + "/Users" + "/alice && ls\n")
+        result = scan(self.repo, "--tree")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("a.sh:1: home-path", result.stdout)
+        self.assertIn("a.sh:2: home-path", result.stdout)
+
+    def test_windows_home_path_is_flagged(self):
+        commit_file(self.repo, "a.md", "C:" + "\\" + "Users" + "\\" + "alice" + "\\" + "file.txt\n")
+        self.assertIn("a.md:1: home-path", scan(self.repo, "--tree").stdout)
+
+    def test_message_mode_scans_a_commit_message_file(self):
+        commit_file(self.repo, "a.md", "clean\n")
+        message = self.root / "MSG"
+        message.write_text("fix: thing\n\nfor the " + PRIVATE_WORD + " team\n", encoding="utf-8")
+        result = scan(self.repo, "--message", str(message), patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("<message>:3: private#1", result.stdout)
+
+    def test_message_mode_ignores_comment_lines(self):
+        commit_file(self.repo, "a.md", "clean\n")
+        message = self.root / "MSG"
+        message.write_text("fix: thing\n# On branch " + PRIVATE_WORD + "\n", encoding="utf-8")
+        self.assertEqual(scan(self.repo, "--message", str(message), patterns=PRIVATE_WORD).returncode, 0)
 
     def test_require_private_without_patterns_exits_2(self):
         commit_file(self.repo, "a.md", "clean\n")
@@ -145,7 +192,8 @@ class LeakScanTest(unittest.TestCase):
         commit_file(self.repo, PRIVATE_WORD + ".bin", b"\x00\x01\x02")
         result = scan(self.repo, "--tree", patterns=PRIVATE_WORD)
         self.assertEqual(result.returncode, 1)
-        self.assertIn(".bin:0: private#1", result.stdout)
+        self.assertIn(":0: private#1", result.stdout)
+        self.assertNotIn(PRIVATE_WORD, (result.stdout + result.stderr).lower())
 
     def test_staged_scans_index_not_worktree(self):
         commit_file(self.repo, "a.md", "clean\n")
