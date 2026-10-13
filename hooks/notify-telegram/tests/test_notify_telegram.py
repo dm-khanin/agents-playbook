@@ -108,5 +108,33 @@ class NotifyTelegramTest(unittest.TestCase):
         self.assertIsNone(re.search(r"[Ѐ-ӿ]", text), text)
 
 
+    def test_a_press_on_another_message_or_in_another_chat_is_ignored(self):
+        for scenario in ("other_chat", "other_message"):
+            with self.subTest(scenario=scenario):
+                result = self.run_hook(scenario)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout.strip(), "")
+
+    def test_the_token_is_never_in_curl_arguments(self):
+        token = "bot-token-for-tests"
+        self.run_hook("allow", token=token)
+        self.assertTrue(self.calls())
+        for call in self.calls():
+            self.assertFalse(any(token in arg for arg in call["argv"]), call["argv"])
+
+    def test_pending_state_is_private_to_the_user(self):
+        self.run_hook("allow")
+        pending = self.tmp / f"notify-telegram-{os.getuid()}"
+        self.assertTrue(pending.is_dir())
+        self.assertEqual(stat.S_IMODE(pending.stat().st_mode), 0o700)
+
+    def test_a_pending_path_that_is_a_symlink_is_refused(self):
+        elsewhere = self.tmp / "elsewhere"
+        elsewhere.mkdir()
+        (self.tmp / f"notify-telegram-{os.getuid()}").symlink_to(elsewhere)
+        result = self.run_hook("allow")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(self.calls(), [])
+
 if __name__ == "__main__":
     unittest.main()
