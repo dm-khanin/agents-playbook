@@ -34,6 +34,7 @@ ALLOWED_EMAIL = re.compile(
 )
 BINARY_SNIFF_BYTES = 8000
 MESSAGE = "<message>"
+DIFF_HEADER = "<diff header>"
 
 
 class ScanError(Exception):
@@ -175,20 +176,51 @@ def scan_identities(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
                     yield Finding(role, 1, f"private#{index}", None, commit=sha[:12], private_line=True)
 
 
+HUNK = re.compile(r"^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+
+
 def scan_history(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
-    """Every commit message, diff line and identity on every ref. Line numbers index the log output."""
+    """Every commit message, diff line and identity on every ref.
+
+    A diff line is reported by its line in the file: an added or context line in the new version, a removed line in
+    the old one. A message line is numbered within its message; diff header lines get line 0, like a file name.
+    """
     if run_git(repo, "rev-parse", "--is-shallow-repository").strip() == "true":
         raise ScanError("history scan needs a full clone (in CI: actions/checkout with fetch-depth: 0)")
     yield from scan_identities(repo, private)
     log = run_git(repo, "log", "--all", "-p", "--no-color", "--no-ext-diff", "--format=commit %H%n%B")
-    commit, path, private_path = "?", MESSAGE, False
-    for number, line in enumerate(log.splitlines(), start=1):
+    commit, path, old_path, private_path = "?", MESSAGE, MESSAGE, False
+    in_message = in_hunk = False
+    number = old_line = new_line = 0
+    for line in log.splitlines():
         if line.startswith("commit ") and len(line) == 47:
             commit, path, private_path = line[7:19], MESSAGE, False
+            in_message, in_hunk, number = True, False, 0
             continue
-        if line.startswith("+++ b/"):
-            path = line[6:]
-            private_path = is_private(path, private)
+        if line.startswith("diff --git "):
+            in_message = in_hunk = False
+            path = old_path = DIFF_HEADER
+            private_path = False
+        hunk = HUNK.match(line)
+        if in_message:
+            number += 1
+        elif hunk:
+            old_line, new_line, in_hunk = int(hunk.group(1)), int(hunk.group(2)), True
+            number = new_line
+        elif in_hunk:
+            if line.startswith("+"):
+                number, new_line = new_line, new_line + 1
+            elif line.startswith("-"):
+                number, old_line = old_line, old_line + 1
+            elif not line.startswith("\\"):
+                number, old_line, new_line = new_line, old_line + 1, new_line + 1
+        else:
+            number = 0
+            if line.startswith("--- a/"):
+                old_path = line[6:]
+            elif line.startswith("+++ "):
+                path = line[6:] if line.startswith("+++ b/") else old_path
+                private_path = is_private(path, private)
         yield from scan_line(path, number, line, private, commit, private_path)
 
 
