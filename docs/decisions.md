@@ -71,3 +71,31 @@ directives help.
 **Decision.** Each rule in `global/AGENTS.md` is a directive, the reason for it, and how to apply it, in about five
 lines.
 **Consequences.** Background and war stories stay out of the rules file.
+
+## D9. A guard is a second layer
+
+**Context.** An agent-facing wrapper decides from the command line: names, keywords, flags. An agent that is
+confused, or a prompt that steers it, can call the raw client instead, and a name check cannot know what a name
+really points at.
+**Decision.** `pg-read` and `aws-guard` present themselves as defence in depth and ergonomics: row caps,
+timeouts, masking, an audit trail, refusals with reasons. The boundary is elsewhere: a database role that can only
+read, a cloud account or role that cannot touch production. The harness allow rule goes on the guard, and the raw
+client stays behind a prompt.
+**Consequences.** Each guard's README says what it does not protect against.
+
+## D10. pg-read trusts the server, not a keyword list
+
+**Context.** A keyword denylist rejects legitimate reads (a column called `vacuum`, a comment on the first line)
+and still misses writes that need no keyword, such as a function with side effects.
+**Decision.** Every statement runs in a read-only transaction with a statement timeout, both set as connection
+parameters, so PostgreSQL itself refuses writes. The client only checks that the input is one statement starting
+with a read keyword.
+**Consequences.** The guard is proven by integration tests against a real server, which CI requires to run.
+
+## D11. A guard has no default target
+
+**Context.** The private wrappers these guards replace defaulted to production: the bare connection was the
+production database, and the cloud guard picked a profile itself.
+**Decision.** `pg-read` requires `--service`; `aws-guard` sets no profile or region and leaves both to the
+environment.
+**Consequences.** One more flag per call, and no call reaches a system nobody named.

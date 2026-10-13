@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: implemented in v1 · 2026-10
+Status: v1 implemented · v2 specified in §12 · 2026-10
 
 ## 1. Purpose
 
@@ -87,7 +87,7 @@ There are no per-harness top-level folders. Harness-specific material lives insi
 | `docs/decisions.md` | this design | Short decision records, see §8 |
 
 Out of v1: guarded read-only query wrappers for databases and a dev-only cloud CLI guard. The ideas are portable
-but each is a rewrite from scratch. Later, on request.
+but each is a rewrite from scratch; they are the core of v2 (§12).
 
 ## 6. Leak guard
 
@@ -123,6 +123,9 @@ One workflow on every push and pull request:
 3. `shellcheck` on shell scripts.
 4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
    built-in test runner, so CI has no dependency installs beyond what a tool already declares.
+5. Integration tests that need a real service start a throwaway one themselves and skip when its binaries are
+   missing. CI puts the binaries on `PATH` and sets the tool's `*_REQUIRE_INTEGRATION` variable, so a skip there
+   fails the job instead of passing silently.
 
 Each check has a negative test: a fixture that must fail. A check that cannot go red protects nothing.
 
@@ -136,6 +139,9 @@ Each check has a negative test: a fixture that must fail. A check that cannot go
 6. The private denylist never enters the repo.
 7. Local hooks are the last gate before publication; CI is the backstop.
 8. Global rules are short directives, not prose.
+9. A guard is a second layer; the boundary is a database role or a cloud account.
+10. pg-read leaves write refusal to the server's read-only mode instead of a keyword list.
+11. A guard has no default target.
 
 ## 9. Adding content later
 
@@ -157,3 +163,114 @@ symlinks, the instruction is to copy.
 - [x] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [x] Every tool's README commands run as written on a clean shell.
 - [x] CI is green on the pushed branch, including the private-pattern step.
+
+## 12. v2 content
+
+The second iteration rewrites two guards from scratch and adds one hook, two skills and two rules. The guards share
+the stance of D9–D11: they sit behind a database role or a cloud account rather than replace one, they have no
+default target, and pg-read leaves write refusal to the server.
+
+| Path | Source | Work |
+|---|---|---|
+| `tools/pg-read` | private read-only query wrapper | Rewrite in Python around `psql`, §12.1 |
+| `tools/aws-guard` | private cloud CLI guard | Rewrite in Python, §12.2 |
+| `hooks/permission-lint` | private SessionStart linter | Take; add tests, a `hooks.json` and a README, §12.3 |
+| `skills/write-reliable-hooks` | measured hook behaviour; the hook machinery of a private docs-sync system | Distil the failure modes and the kit that prevents them, §12.4 |
+| `skills/gate-a-deploy` | two private release-and-deploy skills | Distil a platform-neutral checklist of release and deploy gates, §12.4 |
+| `global/AGENTS.md`, rules 15–16 | the same sources | "A green build is not a deploy"; "prove no behaviour change with a fingerprint" |
+
+Out of v2: a Slack attachment prefetch hook, which needs its credential and cache handling reworked first; Mongo,
+Elasticsearch and Redis wrappers, which are tied to one data model; a post-merge follow-up queue, a large rewrite.
+Later, on request.
+
+### 12.1 `tools/pg-read`
+
+`pg-read --service NAME [--limit N] [--timeout SECONDS] [--unmask] [-c SQL]` runs one read statement, given with
+`-c` or on stdin, and prints CSV.
+
+- **Connection.** `--service` is required and names an entry in the libpq service file (`~/.pg_service.conf` or
+  `$PGSERVICEFILE`); passwords stay in `~/.pgpass`. There is no default service.
+- **The server does the guarding.** `psql -X` runs with `PGOPTIONS` setting `default_transaction_read_only=on`,
+  `statement_timeout` (`--timeout`, default 60 s, ceiling 600 s), `lock_timeout=5s` and
+  `application_name=pg-read`. `SELECT`, `WITH`, `VALUES` and `TABLE` statements run through a cursor inside
+  `BEGIN READ ONLY` and fetch `limit + 1` rows, so the cap never reorders a result; `EXPLAIN` and `SHOW` run
+  directly in the same read-only transaction.
+- **Client-side checks** give a fast, clear refusal and are not the safety boundary: the input is exactly one
+  statement, found by a tokenizer that understands quotes, dollar quotes and comments, and its first keyword is
+  one of the six above. There is no keyword denylist.
+- **Row cap.** `--limit` defaults to 100, must be a positive integer and has a ceiling of 10 000. When `limit + 1`
+  rows come back, the extra row is dropped and the summary says the output was truncated.
+- **Masking.** Cells in columns whose name matches `PG_READ_MASK_COLUMNS` (default: e-mail, phone, password,
+  secret, token, API key, IBAN, card) become `***`; an e-mail address in any other cell keeps two characters of
+  its local part and its domain. `--unmask` needs `PG_READ_ALLOW_UNMASK=1` and is recorded in the audit log.
+- **Audit log.** One JSON line per call, accepted or refused, in `$PG_READ_AUDIT_LOG` or
+  `${XDG_STATE_HOME:-~/.local/state}/pg-read/audit.jsonl`, created with mode 0600: time, service, masked
+  statement, limit, rows, truncation, duration, outcome and reason, and whether output was unmasked. Results are
+  never logged. If the log cannot be written, the statement does not run.
+- **Output.** CSV on stdout, a one-line summary on stderr.
+- **Exit codes.** 0 success; 1 refused by pg-read; 2 usage or configuration error; 3 the statement failed on the
+  server, including the server's own read-only refusal.
+- **Tests.** Unit tests run against a fake `psql` that records its arguments and environment. Integration tests
+  start a throwaway cluster with `initdb` on a Unix socket in a temporary directory and show that the server
+  refuses a write hidden in a CTE, `SELECT … INTO`, `nextval()`, `EXPLAIN ANALYZE` of a write and a `set_config`
+  of the read-only setting, even on a superuser connection; that the timeout fires; and that `ORDER BY` survives
+  the row cap. They skip without `initdb` on `PATH` unless `PG_READ_REQUIRE_INTEGRATION=1`.
+
+### 12.2 `tools/aws-guard`
+
+`aws-guard <service> <operation> [args…]` runs the AWS CLI when a call passes these checks in order, and refuses
+it otherwise:
+
+1. **Never**, whatever the target: calls that print secret material or credentials (Secrets Manager values, SSM
+   parameter values, KMS decrypt, STS credential calls, ECR login, SSO role credentials, IAM access keys,
+   `s3 presign`, `configure`), and any call with `--endpoint-url`, which would sign the request, session token
+   included, for another host.
+2. `lambda get-function` and `get-function-configuration` only with `--query`, because their full output includes
+   the function's environment variables.
+3. **Reads run anywhere**: operations named `describe-*`, `get-*`, `list-*`, `batch-get-*`, `head-*` or
+   `lookup-*`, and `filter-log-events`, `tail`, `wait` and `ls`.
+4. **Everything else counts as a write** and runs only when at least one argument names a dev resource and none
+   names prod, by `AWS_GUARD_DEV_PATTERN` and `AWS_GUARD_PROD_PATTERN` (case-insensitive regular expressions;
+   defaults match `dev` and `prod|production` as whole words), and only without `--profile`, `--cli-input-json`
+   or `--cli-input-yaml`, which would move the account or the resource names out of the guard's sight.
+
+The guard sets no profile or region. It runs `$AWS_GUARD_AWS`, or the first `aws` on `PATH` that is not itself. A
+refusal prints `aws-guard: refused <service> <operation>: <reason>` and exits 1, a usage error exits 2, and
+otherwise the exit code is the CLI's. The README pairs it with a harness rule that allows the guard and asks
+before plain `aws`. Tests run against a fake `aws`.
+
+### 12.3 `hooks/permission-lint`
+
+A SessionStart hook that reads the user's and the project's Claude Code settings files and reports, through
+`systemMessage`, only defects it can prove from the files: invalid JSON, which makes Claude Code drop the whole
+file; path rules for `Write`, `NotebookEdit`, `MultiEdit` or `Glob`, which Claude Code accepts but never consults
+(permissions documentation, checked against 2.1.296), with the `Edit(...)` or `Read(...)` rule to use instead;
+a rule repeated within one list; and a rule in both `allow` and `deny`. It is silent when the files are clean and
+never fails session start. Claude Code only. Tests cover each check, a clean file, a missing file and the
+output shape.
+
+### 12.4 Skills and rules
+
+- **`write-reliable-hooks`**, for writing or debugging an agent hook. The measured failure modes: exit code 2 from
+  a prompt hook blocks the prompt, and an interpreter that cannot find its script exits 2; the working directory
+  in a post-command payload is where the command ended; a prompt hook also fires on subagent hand-backs; a
+  settings edit applies live and the next call can race it. The kit: `|| true` plus the script's own error log,
+  surfaced later; a kill-switch variable; a time budget inside the hook timeout; non-interactive git and ssh; a cap
+  on injected context; atomic state writes under a lock; a sentinel to prove a hook fires. Each fact names the
+  version it was measured on.
+- **`gate-a-deploy`**, a checklist from release to running service: wait for the CI run of your own commit, not
+  the newest one; promote the artefact you verified instead of rebuilding it; confirm the running release carries
+  your commit on every instance, because a zero-downtime cutover keeps the old release serving; check HTTP status
+  codes explicitly; check credentials before a long poll and keep its stderr; look for a second deploy path that
+  bypasses infrastructure as code; prove the artefact by loading it in a one-off process.
+- **Rules 15 and 16** follow the shape in D8.
+
+## 13. Verification before pushing v2
+
+- [ ] Every new test was watched failing before its code existed, and a mutation of each guard rule turns a test
+  red.
+- [ ] The pg-read integration suite passes locally and in CI, where `PG_READ_REQUIRE_INTEGRATION=1`.
+- [ ] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
+- [ ] Both new skills load in Claude Code and in OpenCode.
+- [ ] Every new README block runs as written in an empty `HOME`.
+- [ ] CI is green on the pushed branch.
