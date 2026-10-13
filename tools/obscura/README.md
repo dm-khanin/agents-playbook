@@ -28,12 +28,17 @@ shasum -a 256 "$asset"
 gh release view "$tag" -R h4ckf0r0day/obscura --json assets --jq ".assets[] | select(.name==\"$asset\") | .digest"
 tar tzf "$asset"          # expect two plain files: obscura, obscura-worker
 tar xzf "$asset"
+mkdir -p ~/.local/bin
 install -m 755 obscura obscura-worker ~/.local/bin/
-obscura --version
+~/.local/bin/obscura --version
 ```
 
-Compare the two hashes before extracting. Keep `obscura` and `obscura-worker` in the same directory: the
-parallel `scrape` command starts the worker from there. Updates are manual: repeat with the new tag.
+Compare the two hashes before extracting. The digest lookup needs a logged-in `gh` (`gh auth login`); without
+it, read the digest on the release page. Keep `obscura` and `obscura-worker` in the same directory: the parallel
+`scrape` command starts the worker from there. Updates are manual: repeat with the new tag.
+
+The commands below call `obscura` by name, so `~/.local/bin` must be on your `PATH`. On macOS it is not by
+default: add `export PATH="$HOME/.local/bin:$PATH"` to `~/.zprofile` and open a new shell.
 
 ## MCP setup
 
