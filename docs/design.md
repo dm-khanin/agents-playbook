@@ -149,8 +149,8 @@ symlinks, the instruction is to copy.
 
 ## 11. Verification before the first push
 
-- [ ] `scripts/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
-- [ ] Manual read of every file for anything the patterns cannot know about.
-- [ ] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
-- [ ] Every tool's README commands run as written on a clean shell.
+- [x] `scripts/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
+- [x] Manual read of every file for anything the patterns cannot know about.
+- [x] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
+- [x] Every tool's README commands run as written on a clean shell.
 - [ ] CI is green on the pushed branch, including the private-pattern step.
