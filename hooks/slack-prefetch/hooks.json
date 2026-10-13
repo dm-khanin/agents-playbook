@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "python3 \"$HOME/.agents/hooks/slack-prefetch/slack_prefetch.py\" || true", "timeout": 90 }] }
+    ]
+  }
+}

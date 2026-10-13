@@ -25,6 +25,7 @@ history for anything that should not be published.
 | Hook | [`save-notes-on-push`](hooks/save-notes-on-push/) | After a successful `git push`, reminds the agent to save a note | Claude Code; DeepSeek Harness via its bridge, untested |
 | Hook | [`notify-telegram`](hooks/notify-telegram/) | Approve, always-allow or deny permission prompts from Telegram | Claude Code |
 | Hook | [`permission-lint`](hooks/permission-lint/) | At session start, reports permission rules that are never consulted, repeated, or overridden by deny | Claude Code |
+| Hook | [`slack-prefetch`](hooks/slack-prefetch/) | Downloads the attachments of Slack threads linked in a prompt so the agent can read them | Claude Code |
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
