@@ -21,6 +21,7 @@ history for anything that should not be published.
 | Skill | [`save-notes`](skills/save-notes/SKILL.md) | Keeps per-repository and cross-cutting session notes that the next session can pick up | Claude Code, OpenCode; others format-compatible, untested |
 | Hook | [`save-notes-on-push`](hooks/save-notes-on-push/) | After a successful `git push`, reminds the agent to save a note | Claude Code; DeepSeek Harness via its bridge, untested |
 | Hook | [`notify-telegram`](hooks/notify-telegram/) | Approve, always-allow or deny permission prompts from Telegram | Claude Code |
+| Hook | [`permission-lint`](hooks/permission-lint/) | At session start, reports permission rules that are never consulted, repeated, or overridden by deny | Claude Code |
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
