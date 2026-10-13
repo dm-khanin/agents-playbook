@@ -153,4 +153,4 @@ symlinks, the instruction is to copy.
 - [x] Manual read of every file for anything the patterns cannot know about.
 - [x] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [x] Every tool's README commands run as written on a clean shell.
-- [ ] CI is green on the pushed branch, including the private-pattern step.
+- [x] CI is green on the pushed branch, including the private-pattern step.
