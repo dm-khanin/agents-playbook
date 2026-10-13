@@ -27,7 +27,7 @@ You are adding to a public catalog of agent rules, skills, tools and hooks. Ever
 
 ## Before every commit
 
-    python3 scripts/leak_scan.py --staged
+    python3 tools/leak-guard/leak_scan.py --staged
     python3 scripts/skill_lint.py
     sh scripts/run-tests.sh
 

@@ -106,7 +106,7 @@ the guard is mechanical and runs before anything leaves the machine.
 - **Nothing private is echoed.** A private finding is reported by pattern position only; a line that matches a
   private pattern prints no excerpt for any finding on it; a matching file path is shown as a hash. `--reveal`
   lifts this for local investigation and is never used in CI.
-- **Where it runs:** `scripts/leak_scan.py` scans staged files in pre-commit, the message in commit-msg and the
+- **Where it runs:** `tools/leak-guard/leak_scan.py` scans staged files in pre-commit, the message in commit-msg and the
   whole history with private patterns required in pre-push, which is the last gate before anything is published.
   The hooks are opt-in per clone (`git config core.hooksPath .githooks`), because git does not carry hooks across
   clones; CI repeats the tree and history scans as the backstop for clones without them.
@@ -118,7 +118,7 @@ the guard is mechanical and runs before anything leaves the machine.
 
 One workflow on every push and pull request:
 
-1. `scripts/leak_scan.py` over the tree and history, public and private patterns, plus gitleaks.
+1. `tools/leak-guard/leak_scan.py` over the tree and history, public and private patterns, plus gitleaks.
 2. `scripts/skill_lint.py`: frontmatter present, `name` rules from §4, directory depth.
 3. `shellcheck` on shell scripts.
 4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
@@ -146,7 +146,7 @@ Each check has a negative test: a fixture that must fail. A check that cannot go
 ## 9. Adding content later
 
 `AGENTS.md` at the root is the contract an agent follows when asked to add something: where each kind of item
-goes, the conventions in §4, the support line, running `scripts/leak_scan.py` and `scripts/skill_lint.py` before
+goes, the conventions in §4, the support line, running `tools/leak-guard/leak_scan.py` and `scripts/skill_lint.py` before
 committing, and one item per commit with a Conventional Commit message. It is written so that any of the four
 harnesses can follow it without other context.
 
@@ -158,7 +158,7 @@ symlinks, the instruction is to copy.
 
 ## 11. Verification before the first push
 
-- [x] `scripts/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
+- [x] `tools/leak-guard/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
 - [x] Manual read of every file for anything the patterns cannot know about.
 - [x] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [x] Every tool's README commands run as written on a clean shell.
@@ -291,7 +291,7 @@ Slack prefetch hook, and hardens three existing items from the backlog.
 
 | Path | Source | Work |
 |---|---|---|
-| `tools/leak-guard` | this repo's `scripts/leak_scan.py` | Move the scanner and its tests; add an installer, generic git hooks and a CI snippet, §14.1 |
+| `tools/leak-guard` | this repo's `tools/leak-guard/leak_scan.py` | Move the scanner and its tests; add an installer, generic git hooks and a CI snippet, §14.1 |
 | `skills/brief-a-subagent` | delegation rules and practice | How to brief, scope and verify a subagent, §14.2 |
 | `hooks/slack-prefetch` | private Slack file prefetch hooks | Rewrite neutrally, §14.3 |
 | `hooks/notify-telegram`, `hooks/permission-lint`, `tools/leak-guard` | backlog | Hardening, §14.4 |

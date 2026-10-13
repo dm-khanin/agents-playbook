@@ -17,11 +17,11 @@ jobs:
       - name: Leak scan, tracked files
         env:
           LEAKGUARD_PATTERNS: ${{ secrets.LEAKGUARD_PATTERNS }}
-        run: python3 scripts/leak_scan.py --tree --require-private
+        run: python3 tools/leak-guard/leak_scan.py --tree --require-private
       - name: Leak scan, full history
         env:
           LEAKGUARD_PATTERNS: ${{ secrets.LEAKGUARD_PATTERNS }}
-        run: python3 scripts/leak_scan.py --history --require-private
+        run: python3 tools/leak-guard/leak_scan.py --history --require-private
       - name: gitleaks
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:

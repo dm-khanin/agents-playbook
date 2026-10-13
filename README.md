@@ -60,7 +60,7 @@ snippets point, and follow each item's README for settings and MCP configuration
 
 ## How it is kept clean
 
-[`scripts/leak_scan.py`](scripts/leak_scan.py) checks staged files, the tree and the full history, commit authors
+[`tools/leak-guard/leak_scan.py`](tools/leak-guard/leak_scan.py) checks staged files, the tree and the full history, commit authors
 included, against built-in public patterns and a private list that never enters the repository; CI runs it with gitleaks, a skill linter,
 shellcheck and every test suite. Details in [`docs/design.md`](docs/design.md) §6.
 

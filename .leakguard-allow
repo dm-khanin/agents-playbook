@@ -1,5 +1,5 @@
 # Exact "<path> <public-pattern-id>" pairs that are intentionally present.
 # One line covers every match of that pattern in that file; give the reason in the commit that adds it.
-# Wildcards and private pattern ids are rejected by scripts/leak_scan.py.
+# Wildcards and private pattern ids are rejected by tools/leak-guard/leak_scan.py.
 tools/claude-chat-fetch/tests/attachments.test.mjs home-path
 tools/claude-chat-fetch/tests/fixtures/conversation-with-created-files.json home-path

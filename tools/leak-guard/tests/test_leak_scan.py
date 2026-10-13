@@ -1,4 +1,4 @@
-"""Tests for scripts/leak_scan.py. Fixture strings are assembled at runtime so this
+"""Tests for tools/leak-guard/leak_scan.py. Fixture strings are assembled at runtime so this
 file never contains a literal the scanner would flag."""
 from __future__ import annotations
 

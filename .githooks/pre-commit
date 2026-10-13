@@ -3,7 +3,7 @@
 # CI runs the same checks over the whole tree and history; this hook only gives earlier feedback.
 set -eu
 root=$(git rev-parse --show-toplevel)
-python3 "$root/scripts/leak_scan.py" --staged --repo "$root"
+python3 "$root/tools/leak-guard/leak_scan.py" --staged --repo "$root"
 if [ -d "$root/skills" ]; then
   python3 "$root/scripts/skill_lint.py" --root "$root"
 fi
