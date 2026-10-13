@@ -1,7 +1,7 @@
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "python3 \"$HOME/.agents/hooks/permission-lint/permission_lint.py\" || true", "timeout": 10 }] }
+      { "matcher": "startup", "hooks": [{ "type": "command", "command": "python3 \"$HOME/.agents/hooks/permission-lint/permission_lint.py\" || true", "timeout": 10 }] }
     ]
   }
 }

@@ -6,7 +6,7 @@ Only defects provable from the settings files are reported:
   2. Path rules for Write, NotebookEdit, MultiEdit or Glob: Claude Code checks file access against Edit(path) and
      Read(path) only, so it accepts these rules and never consults them.
   3. A rule repeated within one list.
-  4. A rule in both allow and deny: deny wins, so the allow entry does nothing.
+  4. A rule in two lists of one file: deny beats ask and allow, ask beats allow, so the weaker entry does nothing.
 
 Whether an MCP tool named in a rule exists is not checked: a hook has no live tool registry, and a hard-coded list
 would go stale.
@@ -75,8 +75,9 @@ def lint_file(path: str, explicit: bool = False) -> list[str]:
                 findings.append(f"'{key}': {rule} is never consulted; use {replacement}")
             counts[rule] = counts.get(rule, 0) + 1
         findings += [f"{rule} appears {count} times in '{key}'" for rule, count in counts.items() if count > 1]
-    for rule in sorted(set(lists.get("allow", [])) & set(lists.get("deny", []))):
-        findings.append(f"{rule} is in both allow and deny; deny wins")
+    for weaker, stronger in (("allow", "deny"), ("allow", "ask"), ("ask", "deny")):
+        for rule in sorted(set(lists.get(weaker, [])) & set(lists.get(stronger, []))):
+            findings.append(f"{rule} is in both {weaker} and {stronger}; {stronger} wins")
     return findings
 
 

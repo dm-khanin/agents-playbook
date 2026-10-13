@@ -13,7 +13,7 @@ unit-tested). Claude Code only: the permission format is Claude Code's.
 | invalid JSON | Claude Code ignores the whole file, every setting in it included |
 | a path rule for `Write`, `NotebookEdit`, `MultiEdit` or `Glob` | Claude Code checks file access against `Edit(path)` and `Read(path)` only, so the rule is accepted and never consulted; the message names the rule to use instead |
 | a rule repeated in one list | dead weight that hides real changes in review |
-| a rule in both `allow` and `deny` | deny wins, so the allow entry does nothing |
+| a rule in two lists of one file | deny beats ask and allow, and ask beats allow, so the weaker entry does nothing |
 
 It reads `~/.claude/settings.json` and the project's `.claude/settings.json` and `.claude/settings.local.json`.
 Whether an MCP tool named in a rule exists is not checked: a hook has no live tool registry to compare against.
@@ -33,7 +33,8 @@ mkdir -p ~/.agents/hooks
 cp -R hooks/permission-lint ~/.agents/hooks/
 ```
 
-Merge [`hooks.json`](hooks.json) into the `hooks` key of `~/.claude/settings.json`. To lint other files:
+Merge [`hooks.json`](hooks.json) into the `hooks` key of `~/.claude/settings.json`. It runs on `startup` only, not
+when a session is resumed, cleared, compacted or forked, so the report appears once. To lint other files:
 `python3 ~/.agents/hooks/permission-lint/permission_lint.py path/to/settings.json`.
 
 ## Test
