@@ -68,6 +68,8 @@ def http_get(url: str, token: str, deadline: float | None = None) -> bytes:
     """GET from Slack with the token, reading at most MAX_FILE + 1 bytes and stopping at the deadline."""
     if not allowed(url):
         raise FetchError(f"refused to send the token to {urllib.parse.urlsplit(url).hostname or url}")
+    if deadline is not None and time.monotonic() > deadline:
+        raise FetchError("time budget spent")
     request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}",
                                                    "User-Agent": "slack-prefetch/1"})
     try:
@@ -111,7 +113,7 @@ def load_token(env) -> tuple[str | None, str | None]:
     """Return (token, problem). No token anywhere is not a problem: the hook stays silent."""
     token = (env.get("SLACK_USER_TOKEN") or "").strip()
     if token:
-        return token, None
+        return (None, "SLACK_USER_TOKEN contains whitespace") if any(c.isspace() for c in token) else (token, None)
     home = Path(env.get("HOME") or str(Path.home()))
     config = Path(env.get("XDG_CONFIG_HOME") or home / ".config")
     path = Path(env.get("SLACK_PREFETCH_TOKEN_FILE") or config / "slack-prefetch" / "token")
@@ -121,7 +123,11 @@ def load_token(env) -> tuple[str | None, str | None]:
         return None, f"token file {path} is owned by another user"
     if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         return None, f"token file {path} is readable by others; chmod 600 it"
-    return path.read_text(encoding="utf-8").strip() or None, None
+    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
+    token = next((line for line in lines if line and not line.startswith("#")), "")
+    if any(c.isspace() for c in token):
+        return None, f"token file {path} has whitespace inside the token"
+    return token or None, None
 
 
 def cache_dir(env) -> Path:
@@ -143,9 +149,13 @@ def prune(cache: Path, ttl_days: int, now: float) -> None:
 
 
 def api(method: str, params: dict, token: str, deadline: float | None) -> dict:
-    data = json.loads(http_get(API + method + "?" + urllib.parse.urlencode(params), token, deadline))
-    if not data.get("ok"):
-        raise FetchError(f"{method}: {data.get('error', 'unknown error')}")
+    body = http_get(API + method + "?" + urllib.parse.urlencode(params), token, deadline)
+    try:
+        data = json.loads(body)
+    except ValueError:
+        raise FetchError(f"{method}: Slack's answer was not JSON") from None
+    if not isinstance(data, dict) or not data.get("ok"):
+        raise FetchError(f"{method}: {data.get('error', 'unknown error') if isinstance(data, dict) else 'bad answer'}")
     return data
 
 
@@ -175,7 +185,11 @@ def fetch_file(info: dict, token: str, cache: Path, total: int,
     if info.get("file_access") == "check_file_info":
         info = api("files.info", {"file": fid}, token, deadline).get("file") or {}
     name = CONTROL.sub("?", info.get("name") or "unnamed")[:120]
-    declared, mime = int(info.get("size") or 0), info.get("mimetype") or ""
+    try:
+        declared = int(info.get("size") or 0)
+    except (TypeError, ValueError):
+        declared = 0
+    mime = info.get("mimetype") or ""
     url = info.get("url_private_download") or info.get("url_private") or ""
     if info.get("mode") in NOT_DOWNLOADABLE:
         return None, f"{name}: not a downloadable Slack file ({info.get('mode')})"
@@ -211,7 +225,7 @@ def prefetch(prompt: str, token: str, cache: Path, clock) -> dict:
     result: dict = {"files": [], "skipped": [], "errors": [], "threads": 0}
     queue = [(key, 0) for key in thread_keys(prompt)]
     seen = {key for key, _ in queue}
-    deadline, total = clock() + BUDGET_SECONDS, 0
+    deadline, total, fetched = clock() + BUDGET_SECONDS, 0, set()
     while queue:
         if result["threads"] >= MAX_THREADS:
             result["errors"].append(f"stopped after {MAX_THREADS} threads; {len(queue)} more were not fetched")
@@ -228,11 +242,17 @@ def prefetch(prompt: str, token: str, cache: Path, clock) -> dict:
         result["threads"] += 1
         for message in messages:
             for info in message.get("files") or []:
+                if info.get("id") in fetched:
+                    continue
+                if clock() > deadline:
+                    result["errors"].append("time budget spent; remaining files were not fetched")
+                    return result
                 try:
                     entry, reason = fetch_file(info, token, cache, total, deadline)
                 except FetchError as exc:
                     entry, reason = None, f"{info.get('name') or 'a file'}: {exc}"
                 if entry:
+                    fetched.add(info.get("id"))
                     result["files"].append(entry)
                     total += entry["counted"]
                 else:
@@ -268,6 +288,7 @@ def ttl_days(env) -> int:
 
 
 def main(stdin=sys.stdin, env=os.environ, out=sys.stdout) -> int:
+    token = None
     try:
         if env.get("SLACK_PREFETCH_OFF") == "1":
             return 0
@@ -286,7 +307,8 @@ def main(stdin=sys.stdin, env=os.environ, out=sys.stdout) -> int:
         if result["files"] or result["skipped"] or result["errors"]:
             emit(out, render(result))
     except Exception as exc:  # noqa: BLE001 - a prompt hook must never block, but never fail silently either
-        emit(out, f"slack-prefetch failed: {type(exc).__name__}: {exc}")
+        message = f"{type(exc).__name__}: {exc}"
+        emit(out, "slack-prefetch failed: " + (message.replace(token, "<token>") if token else message))
     return 0
 
 

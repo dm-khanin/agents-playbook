@@ -8,7 +8,7 @@ if [ "$#" -ne 1 ]; then
   echo "usage: install.sh <path-to-git-repository>" >&2
   exit 2
 fi
-here=$(cd "$(dirname "$0")" && pwd)
+here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 if ! top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null); then
   echo "leak-guard: not a git work tree: $1" >&2
   exit 2
@@ -28,7 +28,17 @@ fi
 
 ignore="$top/.gitignore"
 touch "$ignore"
-if ! git -C "$top" check-ignore -q .leakguard.local; then
+# The rule must live in the repository's own .gitignore: a global or per-clone ignore does not travel with it.
+if found=$(git -C "$top" check-ignore --no-index -v .leakguard.local 2>/dev/null); then
+  source=${found%%:*}
+else
+  source=""
+fi
+case "$source" in
+  "" | /* | .git/info/exclude) repo_rule=no ;;
+  *) repo_rule=yes ;;
+esac
+if [ "$repo_rule" = no ]; then
   if [ -s "$ignore" ] && [ -n "$(tail -c 1 "$ignore")" ]; then
     printf '\n' >> "$ignore"
   fi
