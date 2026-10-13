@@ -27,6 +27,7 @@ history for anything that should not be published.
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
+| Tool | [`leak-guard`](tools/leak-guard/) | Keeps private names out of a public repository: hooks and a CI job, with a private list that never enters the repo | Any git repository |
 
 ## Install on a new machine
 

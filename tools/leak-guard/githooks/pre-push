@@ -1,0 +1,5 @@
+#!/bin/sh
+# leak-guard: the last local gate before the history becomes public. Every ref, private patterns required.
+set -eu
+root=$(git rev-parse --show-toplevel)
+python3 "$root/.leak-guard/leak_scan.py" --history --require-private --repo "$root"

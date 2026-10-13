@@ -39,4 +39,4 @@ jobs:
       - name: Tests
         run: sh scripts/run-tests.sh
       - name: shellcheck
-        run: git ls-files -z '*.sh' '.githooks/*' | xargs -0 shellcheck
+        run: git ls-files -z '*.sh' '.githooks/*' 'tools/leak-guard/githooks/*' | xargs -0 shellcheck

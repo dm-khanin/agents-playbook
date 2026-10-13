@@ -1,0 +1,27 @@
+# leak-guard for GitHub Actions. Copy into .github/workflows/ and add a repository secret LEAKGUARD_PATTERNS with
+# the private patterns, one regular expression per line. The job fails when the secret is missing, and a match is
+# reported by pattern position only, because the logs of a public repository are public too.
+name: leak-scan
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  leak-scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Leak scan, tracked files
+        env:
+          LEAKGUARD_PATTERNS: ${{ secrets.LEAKGUARD_PATTERNS }}
+        run: python3 .leak-guard/leak_scan.py --tree --require-private
+      - name: Leak scan, full history
+        env:
+          LEAKGUARD_PATTERNS: ${{ secrets.LEAKGUARD_PATTERNS }}
+        run: python3 .leak-guard/leak_scan.py --history --require-private

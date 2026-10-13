@@ -1,0 +1,5 @@
+#!/bin/sh
+# leak-guard: scan the commit message; the history scan reads messages too.
+set -eu
+root=$(git rev-parse --show-toplevel)
+python3 "$root/.leak-guard/leak_scan.py" --message "$1" --repo "$root"

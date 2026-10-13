@@ -1,0 +1,5 @@
+#!/bin/sh
+# leak-guard: scan the staged files before every commit.
+set -eu
+root=$(git rev-parse --show-toplevel)
+python3 "$root/.leak-guard/leak_scan.py" --staged --repo "$root"
