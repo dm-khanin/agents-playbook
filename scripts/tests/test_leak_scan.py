@@ -216,6 +216,32 @@ class LeakScanTest(unittest.TestCase):
         commit_file(self.repo, "a.md", "clean\n", "ticket for " + PRIVATE_WORD)
         self.assertIn("private#1", scan(self.repo, "--history", patterns=PRIVATE_WORD).stdout)
 
+    def test_history_flags_a_private_word_in_the_author_without_echo(self):
+        (self.repo / "a.md").write_text("clean\n", encoding="utf-8")
+        git(self.repo, "add", "a.md")
+        git(self.repo, "commit", "-q", "-m", "add", "--author", "Dev <dev" + "@" + PRIVATE_WORD + ".test>")
+        result = scan(self.repo, "--history", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(":<author>:1: private#1", result.stdout)
+        self.assertNotIn(PRIVATE_WORD, (result.stdout + result.stderr).lower())
+
+    def test_history_flags_a_private_word_in_the_committer(self):
+        (self.repo / "a.md").write_text("clean\n", encoding="utf-8")
+        git(self.repo, "add", "a.md")
+        git(self.repo, "-c", "user.email=ops" + "@" + PRIVATE_WORD + ".test", "commit", "-q", "-m", "add",
+            "--author", "Test <test" + "@" + "example.com>")
+        result = scan(self.repo, "--history", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(":<committer>:1: private#1", result.stdout)
+        self.assertNotIn(":<author>:", result.stdout)
+
+    def test_history_accepts_a_personal_email_as_the_identity(self):
+        (self.repo / "a.md").write_text("clean\n", encoding="utf-8")
+        git(self.repo, "add", "a.md")
+        git(self.repo, "commit", "-q", "-m", "add", "--author", "Alice <" + FOREIGN_EMAIL + ">")
+        result = scan(self.repo, "--history", patterns=PRIVATE_WORD)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
     def test_history_on_shallow_clone_exits_2(self):
         commit_file(self.repo, "a.md", "one\n")
         commit_file(self.repo, "a.md", "two\n")
