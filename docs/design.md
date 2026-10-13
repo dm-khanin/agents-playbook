@@ -87,7 +87,7 @@ There are no per-harness top-level folders. Harness-specific material lives insi
 | `docs/decisions.md` | this design | Short decision records, see §8 |
 
 Out of v1: guarded read-only query wrappers for databases and a dev-only cloud CLI guard. The ideas are portable
-but each is a rewrite from scratch; they are the core of v2 (§12).
+but each is a rewrite from scratch; v2 specifies them (§12.1–§12.2) and has not built them yet.
 
 ## 6. Leak guard
 
@@ -123,7 +123,7 @@ One workflow on every push and pull request:
 3. `shellcheck` on shell scripts.
 4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
    built-in test runner, so CI has no dependency installs beyond what a tool already declares.
-5. Integration tests that need a real service start a throwaway one themselves and skip when its binaries are
+5. Planned with pg-read (§12.1): integration tests that need a real service start a throwaway one themselves and skip when its binaries are
    missing. CI puts the binaries on `PATH` and sets the tool's `*_REQUIRE_INTEGRATION` variable, so a skip there
    fails the job instead of passing silently.
 
@@ -166,7 +166,8 @@ symlinks, the instruction is to copy.
 
 ## 12. v2 content
 
-The second iteration rewrites two guards from scratch and adds one hook, two skills and two rules. The guards share
+The second iteration adds one hook, two skills and two rules, and specifies two guards to be rewritten from
+scratch, which are not built yet. The guards share
 the stance of D9–D11: they sit behind a database role or a cloud account rather than replace one, they have no
 default target, and pg-read leaves write refusal to the server.
 
@@ -183,7 +184,7 @@ Out of v2: a Slack attachment prefetch hook, which needs its credential and cach
 Elasticsearch and Redis wrappers, which are tied to one data model; a post-merge follow-up queue, a large rewrite.
 Later, on request.
 
-### 12.1 `tools/pg-read`
+### 12.1 `tools/pg-read` (specified, not yet built)
 
 `pg-read --service NAME [--limit N] [--timeout SECONDS] [--unmask] [-c SQL]` runs one read statement, given with
 `-c` or on stdin, and prints CSV.
@@ -222,7 +223,7 @@ Later, on request.
   table behind; that the timeout fires, also for a service entry with its own `options`; and that `ORDER BY`
   survives the row cap. They skip without `initdb` on `PATH` unless `PG_READ_REQUIRE_INTEGRATION=1`.
 
-### 12.2 `tools/aws-guard`
+### 12.2 `tools/aws-guard` (specified, not yet built)
 
 `aws-guard <service> <operation> [args…]` runs the AWS CLI when a call passes these checks in order, and refuses
 it otherwise:
@@ -244,7 +245,7 @@ it otherwise:
 
 The guard sets no profile or region. It runs `$AWS_GUARD_AWS`, or the first `aws` on `PATH` that is not itself. A
 refusal prints `aws-guard: refused <service> <operation>: <reason>` and exits 1, a usage error exits 2, and
-otherwise the exit code is the CLI's. The README pairs it with a harness rule that allows the guard and asks
+otherwise the exit code is the CLI's. Its README is to pair it with a harness rule that allows the guard and asks
 before plain `aws`. Tests run against a fake `aws`.
 
 ### 12.3 `hooks/permission-lint`
@@ -260,7 +261,7 @@ output shape.
 ### 12.4 Skills and rules
 
 - **`write-reliable-hooks`**, for writing or debugging an agent hook. The measured failure modes: exit code 2 from
-  a prompt hook blocks the prompt, and an interpreter that cannot find its script exits 2; the working directory
+  a prompt hook blocks the prompt, and some interpreters (python3, dash) exit 2 when they cannot find their script; the working directory
   in a post-command payload is where the command ended; a prompt hook also fires on subagent hand-backs; a
   settings edit applies live and the next call can race it. The kit: `|| true` plus the script's own error log,
   surfaced later; a kill-switch variable; a time budget inside the hook timeout; non-interactive git and ssh; a cap

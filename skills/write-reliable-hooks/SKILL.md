@@ -5,9 +5,10 @@ description: Write or debug an agent hook so it cannot block the session, fails 
 
 # Write reliable agent hooks
 
-Works with: Claude Code (the behaviour below was measured on Claude Code 2.1 releases in October 2026; re-check on
-a newer version); DeepSeek Harness through its Claude Code hook bridge, and Gemini CLI, whose hook events have
-other names (format-compatible, untested).
+Works with: Claude Code (this skill loads; the behaviour below was measured on Claude Code 2.1 releases in October
+2026, the exit codes on macOS and Debian; re-check on a newer version); OpenCode (loads from `~/.agents/skills`
+in v2.0.26); DeepSeek Harness through its Claude Code hook bridge, and Gemini CLI, whose hook events have other
+names (format-compatible, untested).
 
 A hook runs on every matching event of every session, unattended. A broken hook is not a failed command you
 notice: it is a session that silently loses context, or one that cannot take a prompt at all.
@@ -16,7 +17,8 @@ notice: it is a session that silently loses context, or one that cannot take a p
 
 - **Exit code 2 blocks.** From a prompt hook it rejects the prompt; from a pre-tool hook it blocks the tool. And
   `python3 missing.py` itself exits 2, so a Python hook whose script moved blocks every prompt in every session
-  (`node` exits 1 and `sh` 127 in the same case, which do not block).
+  (`node` exits 1, and bash and zsh exit 127, which do not block; dash, the `/bin/sh` of Debian and Ubuntu,
+  exits 2 and does block).
 - **The payload's working directory is where the command ended.** After `cd sub && make`, a post-tool hook sees
   `sub`; applying the command's relative `cd` to that directory again lands somewhere else. A failed command's
   payload can still carry the starting directory.
@@ -41,7 +43,8 @@ notice: it is a session that silently loses context, or one that cannot take a p
    hook until it is killed.
 6. **Cap injected context.** Truncate what the hook adds to the conversation to a fixed size and say so.
 7. **State survives concurrency.** Several sessions run the same hook at once: take a lock (`flock`), write a
-   temporary file, `fsync` it, then rename it over the old one.
+   temporary file, `fsync` it, then rename it over the old one. macOS has no `flock` command: use `fcntl.flock`
+   from Python, or an atomic `mkdir` as the lock.
 8. **Guard the entry point.** If the hook's own code cannot load after an update, catch that where the hook starts
    and log it, instead of letting the interpreter's exit code decide what the harness does.
 
@@ -53,5 +56,6 @@ notice: it is a session that silently loses context, or one that cannot take a p
   break the code and watch the test go red.
 - **Traps that fake a pass:** zsh does not word-split `$var`, so `$cmd args` runs a command named after the whole
   string and a loop over `$pairs` runs once; run such loops under `bash -c` with one case that must differ. Apple's
-  system Python keeps bytecode in a shared cache, so a mutant written to the same path within a second can run
-  stale code: set `PYTHONDONTWRITEBYTECODE=1`.
+  system Python keeps bytecode in a shared cache keyed by path, modification time and size, so a mutant of the
+  same size written within the same second can run stale code: write mutants to a fresh path, or set
+  `PYTHONDONTWRITEBYTECODE=1` for every run, the original included.

@@ -82,6 +82,7 @@ timeouts, masking, an audit trail, refusals with reasons. The boundary is elsewh
 read, a cloud account or role that cannot touch production. The harness allow rule goes on the guard, and the raw
 client stays behind a prompt.
 **Consequences.** Each guard's README says what it does not protect against.
+**Status.** The guards are specified in design §12.1–§12.2 and not built yet.
 
 ## D10. pg-read trusts the server, not a keyword list
 
@@ -93,11 +94,13 @@ The client checks that the input is one statement starting with a read keyword, 
 PostgreSQL's lexical rules, because a second statement in the same call would run in the same session.
 **Consequences.** The guard is proven by integration tests against a real server, which CI requires to run, and
 the tokenizer is tested on the lexical cases where a looser one would disagree with the server.
+**Status.** Specified, not built yet.
 
 ## D11. A guard has no default target
 
-**Context.** The private wrappers these guards replace defaulted to production: the bare connection was the
-production database, and the cloud guard picked a profile itself.
+**Context.** Agent wrappers often fall back to a default connection or profile, and a default tends to be
+whatever its author used most, often production.
 **Decision.** `pg-read` requires `--service`; `aws-guard` sets no profile or region and leaves both to the
 environment.
 **Consequences.** One more flag per call, and no call reaches a system nobody named.
+**Status.** Specified, not built yet.

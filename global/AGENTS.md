@@ -88,5 +88,6 @@ has. A zero-downtime cutover can keep answering from the old release for a while
 
 **16. Prove "no behaviour change" with a fingerprint.**
 Green tests cover what they assert, not everything a refactor can change. Run the old and the new code on the same
-real input and compare a hash of the canonical result (sorted, normalised), next to the timings and the query
-plan. Equal hashes are the proof; a difference is a finding even when every test passes.
+real input and compare a hash of the canonical result (normalised, and sorted only where order is not part of the
+contract), next to the timings and, for a query, its plan. Equal hashes are the proof for that input; a difference
+is a finding even when every test passes.
