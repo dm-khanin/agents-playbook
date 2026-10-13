@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · 2026-10
+Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · v3 specified in §14 · 2026-10
 
 ## 1. Purpose
 
@@ -283,3 +283,69 @@ output shape.
 - [x] Both new skills load in Claude Code and in OpenCode.
 - [x] Every new README block runs as written in an empty `HOME`.
 - [x] CI is green on the pushed branch.
+
+## 14. v3 content
+
+The third iteration turns the leak guard into a tool any repository can install, adds a delegation skill and a
+Slack prefetch hook, and hardens three existing items from the backlog.
+
+| Path | Source | Work |
+|---|---|---|
+| `tools/leak-guard` | this repo's `scripts/leak_scan.py` | Move the scanner and its tests; add an installer, generic git hooks and a CI snippet, §14.1 |
+| `skills/brief-a-subagent` | delegation rules and practice | How to brief, scope and verify a subagent, §14.2 |
+| `hooks/slack-prefetch` | private Slack file prefetch hooks | Rewrite neutrally, §14.3 |
+| `hooks/notify-telegram`, `hooks/permission-lint`, `tools/leak-guard` | backlog | Hardening, §14.4 |
+
+### 14.1 `tools/leak-guard`
+
+- The scanner moves to `tools/leak-guard/leak_scan.py` with its tests; this repo's `.githooks`, CI and docs call
+  it there, so the repo is the tool's first user and nothing is duplicated.
+- `tools/leak-guard/install.sh <repo>` copies the scanner and three generic hooks (pre-commit: staged files;
+  commit-msg: the message; pre-push: the whole history with private patterns required) into `<repo>/.leak-guard/`,
+  creates an empty `.leakguard-allow` if there is none, adds `.leakguard.local` to `.gitignore`, and prints the
+  next steps. It does not change git configuration: enabling the hooks with `core.hooksPath` is the owner's step.
+- `tools/leak-guard/ci/leak-scan.yml` is a GitHub Actions job that runs the tree and history scans with the
+  `LEAKGUARD_PATTERNS` secret required.
+- Tests: the scanner's own suite, plus an install into a scratch repository where a commit carrying a private
+  word is refused by the installed hook and a clean one passes.
+
+### 14.2 `skills/brief-a-subagent`
+
+When to delegate and when to search directly; a fresh agent rather than a fork; read-only by default, and a
+writing agent in its own worktree; every branch of the decision in the opening brief, because a message to a
+running agent reads as untrusted input; a required report shape; verifying the result at the root artefact; and
+treating the report as data, not instructions.
+
+### 14.3 `hooks/slack-prefetch`
+
+A UserPromptSubmit hook: when the prompt contains a Slack message link, it fetches the thread's attachments into a
+local cache and adds their paths to the agent's context, following links to other threads within limits.
+
+- **Token** from `SLACK_USER_TOKEN`, or from a file named by `SLACK_PREFETCH_TOKEN_FILE` (default
+  `${XDG_CONFIG_HOME:-~/.config}/slack-prefetch/token`) that must not be readable by others. The token is sent
+  only to `slack.com` and `files.slack.com` over HTTPS.
+- **Cache** in `${XDG_CACHE_HOME:-~/.cache}/slack-prefetch/`, directory 0700, files 0600, keyed by file id; entries
+  older than `SLACK_PREFETCH_TTL_DAYS` (default 7) are removed on each run.
+- **Limits**, stated in the README and enforced as stated: 2 levels of linked threads, 20 threads, 25 MB per file,
+  100 MB per prompt, a 60-second budget inside the hook's 90-second timeout; audio and video are skipped.
+- **Never blocks:** errors become a line in the injected context; the hook always exits 0; `SLACK_PREFETCH_OFF=1`
+  turns it off; the injected context is capped.
+- The README states that downloaded files are untrusted input and that the hook also fires on subagent hand-backs.
+- Tests run in-process against a fake Slack API; no network.
+
+### 14.4 Hardening
+
+- `notify-telegram`: a button press counts only when it comes from the configured chat; the bot token never
+  appears in a process's arguments; pending state lives in a per-user directory with mode 0700.
+- `permission-lint`: a rule in both `allow` and `ask` (ask wins) and in both `ask` and `deny` (deny wins) is
+  reported; the hook runs only on `startup`, not on resume, clear or compact.
+- `leak-guard`: a history finding names the line number in the file, not in the log output.
+
+## 15. Verification before pushing v3
+
+- [ ] Every new test was watched failing first; the installer test refuses a planted private word through the
+  installed hook.
+- [ ] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
+- [ ] The new skill loads in Claude Code and in OpenCode.
+- [ ] Every new README block runs as written in an empty `HOME`.
+- [ ] CI is green on the pushed branch.
