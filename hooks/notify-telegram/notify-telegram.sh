@@ -15,20 +15,34 @@ ENV_FILE="${TELEGRAM_HOOK_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/agents-pla
 BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 POLL_TIMEOUT="${TELEGRAM_HOOK_TIMEOUT:-120}"
-PENDING_DIR="${TMPDIR:-/tmp}/claude-tg-pending"
+PENDING_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/notify-telegram-$(id -u)"
 
 if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
   exit 1
 fi
 
 API="https://api.telegram.org/bot${BOT_TOKEN}"
-mkdir -p "$PENDING_DIR"
+
+# Call a Bot API method. The URL carries the token, so curl reads it as a config on stdin (printf is a shell
+# builtin) instead of an argument that other processes could read.
+tg() {
+  method=$1
+  shift
+  printf 'url = "%s/%s"\n' "$API" "$method" | curl -s -K - "$@"
+}
+
+# Pending state must be a private directory of this user, not a symlink or someone else's directory.
+mkdir -m 700 "$PENDING_DIR" 2>/dev/null || true
+if [ -L "$PENDING_DIR" ] || [ ! -d "$PENDING_DIR" ] || [ ! -O "$PENDING_DIR" ]; then
+  exit 1
+fi
+chmod 700 "$PENDING_DIR"
 
 # --- Clean up stale messages from previous invocations (fallback) ---
 for f in "$PENDING_DIR"/*.msg; do
   [ -f "$f" ] || continue
   OLD_MSG_ID=$(cat "$f")
-  curl -s -X POST "${API}/editMessageText" \
+  tg editMessageText -X POST \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg chat_id "$CHAT_ID" --arg msg_id "$OLD_MSG_ID" \
       --arg text "🖥 <b>Answered in the terminal</b>" \
@@ -114,7 +128,7 @@ KEYBOARD=$(jq -n \
 }')
 
 # --- Send message ---
-RESPONSE=$(curl -s -X POST "${API}/sendMessage" \
+RESPONSE=$(tg sendMessage -X POST \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg chat_id "$CHAT_ID" \
@@ -124,6 +138,7 @@ RESPONSE=$(curl -s -X POST "${API}/sendMessage" \
   )")
 
 MSG_ID=$(echo "$RESPONSE" | jq -r '.result.message_id // empty')
+SENT_CHAT=$(echo "$RESPONSE" | jq -r '.result.chat.id // empty')
 
 if [ -z "$MSG_ID" ]; then
   exit 1
@@ -135,7 +150,7 @@ echo "$MSG_ID" > "$PENDING_FILE"
 
 
 # --- Poll for Telegram response ---
-LATEST=$(curl -s -X POST "${API}/getUpdates" \
+LATEST=$(tg getUpdates -X POST \
   -H "Content-Type: application/json" \
   -d '{"offset": -1, "limit": 1}')
 OFFSET=$(echo "$LATEST" | jq -r '.result[-1].update_id // 0' 2>/dev/null)
@@ -156,7 +171,7 @@ while true; do
     POLL_SEC=$REMAINING
   fi
 
-  UPDATES=$(curl -s --max-time $((POLL_SEC + 5)) -X POST "${API}/getUpdates" \
+  UPDATES=$(tg getUpdates --max-time $((POLL_SEC + 5)) -X POST \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg offset "$OFFSET" --arg timeout "$POLL_SEC" \
       '{offset: ($offset | tonumber), timeout: ($timeout | tonumber), allowed_updates: ["callback_query"]}'
@@ -169,14 +184,21 @@ while true; do
     UPDATE_ID=$(echo "$UPDATE" | jq -r '.update_id')
     CB_DATA=$(echo "$UPDATE" | jq -r '.callback_query.data // ""')
     CB_ID=$(echo "$UPDATE" | jq -r '.callback_query.id // ""')
+    CB_CHAT=$(echo "$UPDATE" | jq -r '.callback_query.message.chat.id // ""')
+    CB_MSG=$(echo "$UPDATE" | jq -r '.callback_query.message.message_id // ""')
 
     OFFSET=$((UPDATE_ID + 1))
+
+    # A press counts only on the message this request sent, in the chat it was sent to.
+    if [ "$CB_MSG" != "$MSG_ID" ] || [ "$CB_CHAT" != "$SENT_CHAT" ]; then
+      continue
+    fi
 
     case "$CB_DATA" in
       "${REQ_ID}:allow")
         DECISION="allow"
-        curl -s -X POST "${API}/answerCallbackQuery" -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Allowed\"}" > /dev/null 2>&1
-        curl -s -X POST "${API}/editMessageText" \
+        tg answerCallbackQuery -X POST -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Allowed\"}" > /dev/null 2>&1
+        tg editMessageText -X POST \
           -H "Content-Type: application/json" \
           -d "$(jq -n --arg chat_id "$CHAT_ID" --arg msg_id "$MSG_ID" \
             --arg text "$(printf "✅ <b>Allowed</b>\n\nTool: <code>%s</code>\nDetails:\n<code>%s</code>" "$SAFE_TOOL" "$SAFE_DETAILS")" \
@@ -186,8 +208,8 @@ while true; do
         ;;
       "${REQ_ID}:always")
         DECISION="always"
-        curl -s -X POST "${API}/answerCallbackQuery" -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Always Allowed\"}" > /dev/null 2>&1
-        curl -s -X POST "${API}/editMessageText" \
+        tg answerCallbackQuery -X POST -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Always Allowed\"}" > /dev/null 2>&1
+        tg editMessageText -X POST \
           -H "Content-Type: application/json" \
           -d "$(jq -n --arg chat_id "$CHAT_ID" --arg msg_id "$MSG_ID" \
             --arg text "$(printf "🔓 <b>Always allowed</b>\n\nTool: <code>%s</code>\nDetails:\n<code>%s</code>" "$SAFE_TOOL" "$SAFE_DETAILS")" \
@@ -197,8 +219,8 @@ while true; do
         ;;
       "${REQ_ID}:deny")
         DECISION="deny"
-        curl -s -X POST "${API}/answerCallbackQuery" -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Denied\"}" > /dev/null 2>&1
-        curl -s -X POST "${API}/editMessageText" \
+        tg answerCallbackQuery -X POST -H "Content-Type: application/json" -d "{\"callback_query_id\":\"${CB_ID}\",\"text\":\"Denied\"}" > /dev/null 2>&1
+        tg editMessageText -X POST \
           -H "Content-Type: application/json" \
           -d "$(jq -n --arg chat_id "$CHAT_ID" --arg msg_id "$MSG_ID" \
             --arg text "$(printf "❌ <b>Denied</b>\n\nTool: <code>%s</code>\nDetails:\n<code>%s</code>" "$SAFE_TOOL" "$SAFE_DETAILS")" \
@@ -224,7 +246,7 @@ elif [ "$DECISION" = "deny" ]; then
   jq -n '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "deny"}}}'
   exit 0
 else
-  curl -s -X POST "${API}/editMessageText" \
+  tg editMessageText -X POST \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg chat_id "$CHAT_ID" --arg msg_id "$MSG_ID" \
       --arg text "$(printf "⏰ <b>Timed out, waiting in the terminal</b>\n\nTool: <code>%s</code>" "$SAFE_TOOL")" \

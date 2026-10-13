@@ -41,6 +41,13 @@ Anyone who can press the buttons in that chat can approve tool calls on your mac
 bot, never a group. The message shows the tool, its command or file path, the working directory's name and the
 start of the session's first prompt.
 
+- A button press counts only on the message this request sent, in the chat it was sent to; a press anywhere else is
+  ignored and the terminal prompt stays.
+- The bot token reaches curl through a config on stdin, never as a command-line argument that other processes on
+  the machine could read.
+- Pending state lives in a private per-user directory (`$XDG_RUNTIME_DIR`, else `$TMPDIR`, else `/tmp`); if that
+  path is a symlink or belongs to someone else, the hook steps aside and the terminal prompt is used.
+
 ## Test
 
 ```sh
