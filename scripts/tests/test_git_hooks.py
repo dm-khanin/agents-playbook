@@ -20,8 +20,8 @@ class GitHooksTest(unittest.TestCase):
         self.remote = tmp / "remote.git"
         self.repo = tmp / "repo"
         subprocess.run(["git", "init", "-q", "--bare", str(self.remote)], check=True)
-        (self.repo / "scripts").mkdir(parents=True)
-        shutil.copy(ROOT / "scripts" / "leak_scan.py", self.repo / "scripts")
+        (self.repo / "tools" / "leak-guard").mkdir(parents=True)
+        shutil.copy(ROOT / "tools" / "leak-guard" / "leak_scan.py", self.repo / "tools" / "leak-guard")
         shutil.copytree(ROOT / ".githooks", self.repo / ".githooks")
         for args in (["init", "-q", "-b", "main"], ["config", "user.name", "T"],
                      ["config", "user.email", "t" + "@" + "example.com"],
