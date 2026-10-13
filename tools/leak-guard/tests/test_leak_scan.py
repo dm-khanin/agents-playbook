@@ -216,6 +216,26 @@ class LeakScanTest(unittest.TestCase):
         commit_file(self.repo, "a.md", "clean\n", "ticket for " + PRIVATE_WORD)
         self.assertIn("private#1", scan(self.repo, "--history", patterns=PRIVATE_WORD).stdout)
 
+    def test_history_line_number_is_the_line_in_the_file(self):
+        commit_file(self.repo, "a.md", "one\ntwo\nleak " + HOME_PATH + "\n")
+        self.assertIn(":a.md:3: home-path", scan(self.repo, "--history").stdout)
+
+    def test_history_line_number_for_a_removed_line_is_its_line_in_the_old_file(self):
+        commit_file(self.repo, "a.md", "one\nleak " + HOME_PATH + "\nthree\nfour\n", "add")
+        commit_file(self.repo, "a.md", "one\nthree\nfour\nfive\n", "remove")
+        self.assertEqual(scan(self.repo, "--history").stdout.count(":a.md:2: home-path"), 2)
+
+    def test_history_message_lines_are_numbered_within_the_message(self):
+        commit_file(self.repo, "a.md", "clean\n", "subject\n\nbody for " + PRIVATE_WORD)
+        self.assertIn(":<message>:3: private#1", scan(self.repo, "--history", patterns=PRIVATE_WORD).stdout)
+
+    def test_history_path_of_a_deleted_file_is_its_own(self):
+        commit_file(self.repo, "a.md", "leak " + HOME_PATH + "\n", "add")
+        commit_file(self.repo, "b.md", "clean\n", "other")
+        git(self.repo, "rm", "-q", "a.md")
+        git(self.repo, "commit", "-q", "-m", "delete")
+        self.assertEqual(scan(self.repo, "--history").stdout.count(":a.md:1: home-path"), 2)
+
     def test_history_flags_a_private_word_in_the_author_without_echo(self):
         (self.repo / "a.md").write_text("clean\n", encoding="utf-8")
         git(self.repo, "add", "a.md")
