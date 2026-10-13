@@ -42,6 +42,20 @@ yours instead. For CI, copy [`ci/leak-scan.yml`](ci/leak-scan.yml) into `.github
 `LEAKGUARD_PATTERNS` secret; the job fails when the secret is missing. Commit `.leak-guard/` and `.leakguard-allow`;
 never commit `.leakguard.local`.
 
+## Adopting in an existing repository
+
+The pre-push hook and the CI job scan the whole history, every ref included, so an old leak blocks every push until
+it is dealt with. Before enabling the hooks, see what is there:
+
+```sh
+python3 .leak-guard/leak_scan.py --history --reveal
+```
+
+Then either rewrite the history (and treat anything already pushed as published), or add exact
+`<path> <pattern-id>` lines to `.leakguard-allow` for public matches that are genuinely fine. Setting
+`core.hooksPath` also switches off hooks in `.git/hooks`, including those installed by hook managers; call them
+from the `.leak-guard/hooks` scripts if you need both.
+
 ## Usage
 
 ```sh

@@ -51,7 +51,7 @@ agents-playbook/
 ├── tools/<name>/        standalone utilities: README, scripts, tests, MCP snippets
 ├── hooks/<name>/        hook script + hooks.json snippet + README
 ├── docs/                design.md, decisions.md, harness-matrix.md
-├── scripts/             repo tooling: leak scan, skill lint, their tests
+├── scripts/             repo tooling: skill lint, test runner, their tests
 ├── .githooks/           opt-in pre-commit, commit-msg and pre-push guards
 └── .github/workflows/   CI
 ```
@@ -66,8 +66,8 @@ There are no per-harness top-level folders. Harness-specific material lives insi
   dsh and Gemini do not discover nested skills.
 - **Every item states its support**: a "Works with" line naming the harnesses it was used with.
 - **No absolute user paths.** Use `$HOME`, `~` or a documented environment variable.
-- **Credentials only through environment variables**, documented by name, never with an example value that looks
-  real.
+- **Credentials only through environment variables, or a file only the owner can read whose path one names**,
+  documented by name, never with an example value that looks real.
 - **Third-party material** only with a compatible licence, kept beside it, plus a link to the upstream source.
 - **Global rules stay short.** Each rule is a directive, the reason, and how to apply it, in about five lines.
   Long README-style instruction files measurably hurt agent performance, while short, specific directives help.
@@ -158,7 +158,7 @@ symlinks, the instruction is to copy.
 
 ## 11. Verification before the first push
 
-- [x] `tools/leak-guard/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
+- [x] `scripts/leak_scan.py` passes with the private pattern list, and fails on a planted fixture.
 - [x] Manual read of every file for anything the patterns cannot know about.
 - [x] Every skill loads in Claude Code and in at least one harness reading `~/.agents/skills`.
 - [x] Every tool's README commands run as written on a clean shell.
@@ -291,7 +291,7 @@ Slack prefetch hook, and hardens three existing items from the backlog.
 
 | Path | Source | Work |
 |---|---|---|
-| `tools/leak-guard` | this repo's `tools/leak-guard/leak_scan.py` | Move the scanner and its tests; add an installer, generic git hooks and a CI snippet, §14.1 |
+| `tools/leak-guard` | this repo's `scripts/leak_scan.py` | Move the scanner and its tests; add an installer, generic git hooks and a CI snippet, §14.1 |
 | `skills/brief-a-subagent` | delegation rules and practice | How to brief, scope and verify a subagent, §14.2 |
 | `hooks/slack-prefetch` | private Slack file prefetch hooks | Rewrite neutrally, §14.3 |
 | `hooks/notify-telegram`, `hooks/permission-lint`, `tools/leak-guard` | backlog | Hardening, §14.4 |
@@ -337,8 +337,8 @@ local cache and adds their paths to the agent's context, following links to othe
 
 - `notify-telegram`: a button press counts only when it comes from the configured chat; the bot token never
   appears in a process's arguments; pending state lives in a per-user directory with mode 0700.
-- `permission-lint`: a rule in both `allow` and `ask` (ask wins) and in both `ask` and `deny` (deny wins) is
-  reported; the hook runs only on `startup`, not on resume, clear or compact.
+- `permission-lint`: a rule in both `allow` and `ask` (ask wins) and in both `ask` and `deny` (deny wins) of one
+  file is reported; the hook runs only on `startup`, not on resume, clear or compact.
 - `leak-guard`: a history finding names the line number in the file, not in the log output.
 
 ## 15. Verification before pushing v3
