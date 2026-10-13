@@ -348,4 +348,4 @@ local cache and adds their paths to the agent's context, following links to othe
 - [x] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
 - [x] The new skill loads in Claude Code and in OpenCode.
 - [x] Every new README block runs as written in an empty `HOME`.
-- [ ] CI is green on the pushed branch.
+- [x] CI is green on the pushed branch.
