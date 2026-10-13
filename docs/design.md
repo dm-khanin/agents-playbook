@@ -100,6 +100,9 @@ the guard is mechanical and runs before anything leaves the machine.
 - **Private patterns**, never committed: employer, client and system names. The list itself would disclose what
   it protects. Locally it lives in a git-ignored `.leakguard.local`; in CI it comes from a repository secret
   `LEAKGUARD_PATTERNS`. CI fails if the secret is missing, so the private check cannot be skipped silently.
+- **Commit identities.** The history scan also checks every author and committer against the private patterns, so
+  a commit made with a work identity cannot slip through. Public patterns are not applied there: publishing a
+  personal address is the owner's choice.
 - **Nothing private is echoed.** A private finding is reported by pattern position only; a line that matches a
   private pattern prints no excerpt for any finding on it; a matching file path is shown as a hash. `--reveal`
   lifts this for local investigation and is never used in CI.
