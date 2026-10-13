@@ -5,8 +5,8 @@ description: Delegate work to a subagent with a brief that gets a usable result 
 
 # Brief a subagent
 
-Works with: Claude Code (the practice behind it is in daily use there); Gemini CLI, OpenCode, DeepSeek Harness
-(format-compatible, untested).
+Works with: Claude Code (the practice behind it is in daily use there; this skill loads); OpenCode (loads from
+`~/.agents/skills` in v2.0.26); Gemini CLI, DeepSeek Harness (format-compatible, untested).
 
 ## Delegate or not
 

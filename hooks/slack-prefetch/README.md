@@ -24,10 +24,11 @@ Keep the token in a file only you can read, which the hook finds at `${XDG_CONFI
 (or the path in `SLACK_PREFETCH_TOKEN_FILE`):
 
 ```sh
-umask 077
-mkdir -p ~/.config/slack-prefetch
-printf '%s\n' '<paste the token>' > ~/.config/slack-prefetch/token
+(umask 077; dir="${XDG_CONFIG_HOME:-$HOME/.config}/slack-prefetch"; mkdir -p "$dir" && cat > "$dir/token")
 ```
+
+Paste the token, press Enter and then Ctrl-D: `cat` keeps it out of your shell history, and the subshell keeps the
+`umask` from leaking into your session.
 
 `SLACK_USER_TOKEN` works too, but an exported variable is inherited by every command the agent runs, so prefer the
 file. The token is only ever sent over HTTPS to `slack.com` and `files.slack.com`, redirects included; a file

@@ -16,8 +16,8 @@ its first user: its own hooks and CI run this scanner.
 | every commit, message, diff and author on every ref | pre-push, CI | public and private, private required |
 | the tracked tree | CI | public and private, private required |
 
-Public patterns are built in: absolute home paths, e-mail addresses other than GitHub noreply and `example.*`, and
-RFC 1918 addresses. Private patterns are yours: one case-insensitive regular expression per line, in a git-ignored
+Public patterns are built in: absolute home paths, e-mail addresses other than GitHub noreply, `example.*` and
+`noreply@anthropic.com` (the Co-Authored-By address of Claude), and RFC 1918 addresses. Private patterns are yours: one case-insensitive regular expression per line, in a git-ignored
 `.leakguard.local` locally and in a `LEAKGUARD_PATTERNS` repository secret in CI. Intentional public matches go in
 a committed `.leakguard-allow` as exact `<path> <pattern-id>` pairs; a private match can never be allowed.
 
@@ -38,7 +38,7 @@ git -C path/to/your-repo config core.hooksPath .leak-guard/hooks
 ```
 
 If the repository already uses `core.hooksPath` for other hooks, call the three `.leak-guard/hooks` scripts from
-yours instead. For CI, copy [`ci/leak-scan.yml`](ci/leak-scan.yml) into `.github/workflows/` and add the
+yours instead; the installer overwrites `.leak-guard/hooks` on every run, so do not edit them. For CI, copy [`ci/leak-scan.yml`](ci/leak-scan.yml) into `.github/workflows/` and add the
 `LEAKGUARD_PATTERNS` secret; the job fails when the secret is missing. Commit `.leak-guard/` and `.leakguard-allow`;
 never commit `.leakguard.local`.
 
@@ -53,8 +53,8 @@ python3 .leak-guard/leak_scan.py --history --reveal
 
 Then either rewrite the history (and treat anything already pushed as published), or add exact
 `<path> <pattern-id>` lines to `.leakguard-allow` for public matches that are genuinely fine. Setting
-`core.hooksPath` also switches off hooks in `.git/hooks`, including those installed by hook managers; call them
-from the `.leak-guard/hooks` scripts if you need both.
+`core.hooksPath` also switches off hooks in `.git/hooks`, including those installed by hook managers; to keep both,
+point `core.hooksPath` at your own hooks and call the `.leak-guard/hooks` scripts from them.
 
 ## Usage
 
@@ -69,6 +69,10 @@ python3 .leak-guard/leak_scan.py --tree --reveal               # locally: show t
 | 0 | nothing found |
 | 1 | findings, one per line: `path:line: pattern-id`, or `commit:path:line: pattern-id` in history |
 | 2 | the scan could not run: not a repository, a shallow clone, a bad pattern, private patterns required but none |
+
+Pull requests from forks receive no repository secrets, so their leak-scan job fails by design: an outside
+contribution cannot skip the private check. A history finding in a file whose name contains quotes, backslashes or
+control characters is reported under `<diff header>` instead of its path.
 
 A leak that was already pushed stays in forks and caches: the fix is a history rewrite, and the secret or name
 should be treated as published.

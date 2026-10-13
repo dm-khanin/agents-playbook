@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · v3 specified in §14 · 2026-10
+Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · v3 implemented (§14) · 2026-10
 
 ## 1. Purpose
 
@@ -146,8 +146,8 @@ Each check has a negative test: a fixture that must fail. A check that cannot go
 ## 9. Adding content later
 
 `AGENTS.md` at the root is the contract an agent follows when asked to add something: where each kind of item
-goes, the conventions in §4, the support line, running `tools/leak-guard/leak_scan.py` and `scripts/skill_lint.py` before
-committing, and one item per commit with a Conventional Commit message. It is written so that any of the four
+goes, the conventions in §4, the support line, running `tools/leak-guard/leak_scan.py` and
+`scripts/skill_lint.py` before committing, and one item per commit with a Conventional Commit message. It is written so that any of the four
 harnesses can follow it without other context.
 
 ## 10. Install on a new machine
@@ -343,9 +343,9 @@ local cache and adds their paths to the agent's context, following links to othe
 
 ## 15. Verification before pushing v3
 
-- [ ] Every new test was watched failing first; the installer test refuses a planted private word through the
+- [x] Every new test was watched failing first; the installer test refuses a planted private word through the
   installed hook.
-- [ ] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
-- [ ] The new skill loads in Claude Code and in OpenCode.
-- [ ] Every new README block runs as written in an empty `HOME`.
+- [x] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
+- [x] The new skill loads in Claude Code and in OpenCode.
+- [x] Every new README block runs as written in an empty `HOME`.
 - [ ] CI is green on the pushed branch.

@@ -21,11 +21,11 @@ history for anything that should not be published.
 | Skill | [`save-notes`](skills/save-notes/SKILL.md) | Keeps per-repository and cross-cutting session notes that the next session can pick up | Claude Code, OpenCode; others format-compatible, untested |
 | Skill | [`write-reliable-hooks`](skills/write-reliable-hooks/SKILL.md) | Hook failure modes measured in practice, and the kit that prevents them | Claude Code, OpenCode; others format-compatible, untested |
 | Skill | [`gate-a-deploy`](skills/gate-a-deploy/SKILL.md) | Release and deploy gates that prove your commit is what is running | Claude Code, OpenCode; others format-compatible, untested |
-| Skill | [`brief-a-subagent`](skills/brief-a-subagent/SKILL.md) | Whether to delegate, how to scope and brief a subagent, and how to treat its report | Claude Code; others format-compatible, untested |
+| Skill | [`brief-a-subagent`](skills/brief-a-subagent/SKILL.md) | Whether to delegate, how to scope and brief a subagent, and how to treat its report | Claude Code, OpenCode; others format-compatible, untested |
 | Hook | [`save-notes-on-push`](hooks/save-notes-on-push/) | After a successful `git push`, reminds the agent to save a note | Claude Code; DeepSeek Harness via its bridge, untested |
 | Hook | [`notify-telegram`](hooks/notify-telegram/) | Approve, always-allow or deny permission prompts from Telegram | Claude Code |
-| Hook | [`permission-lint`](hooks/permission-lint/) | At session start, reports permission rules that are never consulted, repeated, or overridden by deny | Claude Code |
-| Hook | [`slack-prefetch`](hooks/slack-prefetch/) | Downloads the attachments of Slack threads linked in a prompt so the agent can read them | Claude Code |
+| Hook | [`permission-lint`](hooks/permission-lint/) | At session start, reports permission rules that are never consulted, repeated, or overridden by a stronger list | Claude Code |
+| Hook | [`slack-prefetch`](hooks/slack-prefetch/) | Downloads the attachments of Slack threads linked in a prompt so the agent can read them | Claude Code; DeepSeek Harness via its bridge, untested |
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
@@ -63,9 +63,9 @@ snippets point, and follow each item's README for settings and MCP configuration
 
 ## How it is kept clean
 
-[`tools/leak-guard/leak_scan.py`](tools/leak-guard/leak_scan.py) checks staged files, the tree and the full history, commit authors
-included, against built-in public patterns and a private list that never enters the repository; CI runs it with gitleaks, a skill linter,
-shellcheck and every test suite. Details in [`docs/design.md`](docs/design.md) §6.
+[`tools/leak-guard`](tools/leak-guard/) checks staged files, the tree and the full history, commit authors
+included, against built-in public patterns and a private list that never enters the repository; CI runs it with
+gitleaks, a skill linter, shellcheck and every test suite. Details in [`docs/design.md`](docs/design.md) §6.
 
 ## Design
 
