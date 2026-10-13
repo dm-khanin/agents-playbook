@@ -245,9 +245,6 @@ class SlackPrefetchTest(unittest.TestCase):
                                 timeout=30)
         self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
 
-
-    # review additions
-
     def test_a_reply_link_and_its_parent_are_one_thread(self):
         parent = link("C1", "1700000000.123456")
         reply = link("C1", "1700000099.000001", "?thread_ts=1700000000.123456&cid=C1")
@@ -350,6 +347,54 @@ class SlackPrefetchTest(unittest.TestCase):
             sp.os.getuid = original
         self.assertIsNone(token)
         self.assertIn("owned by", problem)
+
+    def test_a_token_file_with_more_lines_uses_the_first_token_line(self):
+        path = self.tmp / "token"
+        path.write_text("# my workspace\nfrom-file\nnotes\n", encoding="utf-8")
+        path.chmod(0o600)
+        self.assertEqual(sp.load_token({"SLACK_PREFETCH_TOKEN_FILE": str(path)}), ("from-file", None))
+
+    def test_a_token_with_whitespace_is_refused(self):
+        token, problem = sp.load_token({"SLACK_USER_TOKEN": "two words"})
+        self.assertIsNone(token)
+        self.assertIn("whitespace", problem)
+
+    def test_a_failure_message_never_carries_the_token(self):
+        def leaky(url: str, token: str, deadline: float | None = None) -> bytes:
+            raise ValueError(f"Invalid header value b'Bearer {token}'")
+        sp.http_get = leaky
+        output = self.run_hook(link("C1", "1.000001"))
+        self.assertIn("slack-prefetch failed", output)
+        self.assertNotIn(TOKEN, output)
+
+    def test_no_file_is_requested_once_the_budget_is_spent(self):
+        files = [file_obj(f"F{n}") for n in range(5)]
+        self.slack.threads[("C1", "1.000001")] = [[{"text": "", "files": files}]]
+        times = iter([0.0, 0.0] + [1000.0] * 20)
+        result = sp.prefetch(link("C1", "1.000001"), TOKEN, sp.ensure_cache(self.cache), lambda: next(times))
+        self.assertFalse(any("files-pri" in url for url in self.slack.requests))
+        self.assertTrue(any("time budget" in error for error in result["errors"]))
+
+    def test_an_unreadable_api_answer_is_an_error_for_that_thread_only(self):
+        original = self.slack.http_get
+        def flaky(url: str, token: str, deadline: float | None = None) -> bytes:
+            return b"<html>gateway</html>" if "C9" in url else original(url, token, deadline)
+        sp.http_get = flaky
+        self.slack.threads[("C1", "1.000001")] = [[{"text": "", "files": [file_obj("F1")]}]]
+        result = self.prefetch(f"{link('C9', '9.000009')} {link('C1', '1.000001')}")
+        self.assertEqual(len(result["files"]), 1)
+        self.assertIn("C9", result["errors"][0])
+
+    def test_a_non_numeric_size_counts_as_unknown(self):
+        info = file_obj("F1")
+        info["size"] = "lots"
+        self.slack.threads[("C1", "1.000001")] = [[{"text": "", "files": [info]}]]
+        self.assertEqual(len(self.prefetch(link("C1", "1.000001"))["files"]), 1)
+
+    def test_a_file_shared_twice_is_fetched_and_counted_once(self):
+        self.slack.threads[("C1", "1.000001")] = [[{"text": "", "files": [file_obj("F1")]},
+                                                  {"text": "", "files": [file_obj("F1")]}]]
+        self.assertEqual(len(self.prefetch(link("C1", "1.000001"))["files"]), 1)
 
 if __name__ == "__main__":
     unittest.main()

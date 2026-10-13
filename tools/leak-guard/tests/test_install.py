@@ -137,5 +137,28 @@ class InstallTest(unittest.TestCase):
                        "secrets.LEAKGUARD_PATTERNS"):
             self.assertIn(needle, text)
 
+    def test_a_global_ignore_rule_does_not_stand_in_for_the_repository_rule(self):
+        excludes = self.root / "global-ignore"
+        excludes.write_text(".leakguard.local\n", encoding="utf-8")
+        git(self.repo, "config", "core.excludesFile", str(excludes))
+        self.install(str(self.repo))
+        self.assertIn(".leakguard.local", (self.repo / ".gitignore").read_text(encoding="utf-8").splitlines())
+
+    def test_install_twice_with_a_tracked_private_list_adds_one_rule(self):
+        (self.repo / ".leakguard.local").write_text("x\n", encoding="utf-8")
+        git(self.repo, "add", "-f", ".leakguard.local")
+        git(self.repo, "commit", "-q", "-m", "oops")
+        self.install(str(self.repo))
+        self.install(str(self.repo))
+        self.assertEqual((self.repo / ".gitignore").read_text(encoding="utf-8").splitlines().count(".leakguard.local"), 1)
+
+    def test_an_exported_cdpath_does_not_break_the_install(self):
+        tool_root = INSTALL.parents[2]
+        env = dict(os.environ, CDPATH=str(tool_root))
+        result = subprocess.run(["sh", "tools/leak-guard/install.sh", str(self.repo)], capture_output=True, text=True,
+                                env=env, cwd=tool_root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.repo / ".leak-guard" / "leak_scan.py").is_file())
+
 if __name__ == "__main__":
     unittest.main()

@@ -221,8 +221,8 @@ class LeakScanTest(unittest.TestCase):
         self.assertIn(":a.md:3: home-path", scan(self.repo, "--history").stdout)
 
     def test_history_line_number_for_a_removed_line_is_its_line_in_the_old_file(self):
-        commit_file(self.repo, "a.md", "one\nleak " + HOME_PATH + "\nthree\nfour\n", "add")
-        commit_file(self.repo, "a.md", "one\nthree\nfour\nfive\n", "remove")
+        commit_file(self.repo, "a.md", "one\nleak " + HOME_PATH + "\nthree\n", "add")
+        commit_file(self.repo, "a.md", "new1\nnew2\none\nthree\n", "remove it, add two lines above")
         self.assertEqual(scan(self.repo, "--history").stdout.count(":a.md:2: home-path"), 2)
 
     def test_history_message_lines_are_numbered_within_the_message(self):
