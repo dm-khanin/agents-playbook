@@ -87,10 +87,12 @@ client stays behind a prompt.
 
 **Context.** A keyword denylist rejects legitimate reads (a column called `vacuum`, a comment on the first line)
 and still misses writes that need no keyword, such as a function with side effects.
-**Decision.** Every statement runs in a read-only transaction with a statement timeout, both set as connection
-parameters, so PostgreSQL itself refuses writes. The client only checks that the input is one statement starting
-with a read keyword.
-**Consequences.** The guard is proven by integration tests against a real server, which CI requires to run.
+**Decision.** Every statement runs in a read-only transaction whose timeouts are set inside it, and the
+transaction always ends with `ROLLBACK`, so PostgreSQL refuses writes and undoes anything that gets past that.
+The client checks that the input is one statement starting with a read keyword, with a tokenizer that follows
+PostgreSQL's lexical rules, because a second statement in the same call would run in the same session.
+**Consequences.** The guard is proven by integration tests against a real server, which CI requires to run, and
+the tokenizer is tested on the lexical cases where a looser one would disagree with the server.
 
 ## D11. A guard has no default target
 

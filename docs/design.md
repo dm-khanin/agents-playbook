@@ -188,16 +188,20 @@ Later, on request.
 `pg-read --service NAME [--limit N] [--timeout SECONDS] [--unmask] [-c SQL]` runs one read statement, given with
 `-c` or on stdin, and prints CSV.
 
-- **Connection.** `--service` is required and names an entry in the libpq service file (`~/.pg_service.conf` or
-  `$PGSERVICEFILE`); passwords stay in `~/.pgpass`. There is no default service.
-- **The server does the guarding.** `psql -X` runs with `PGOPTIONS` setting `default_transaction_read_only=on`,
-  `statement_timeout` (`--timeout`, default 60 s, ceiling 600 s), `lock_timeout=5s` and
-  `application_name=pg-read`. `SELECT`, `WITH`, `VALUES` and `TABLE` statements run through a cursor inside
-  `BEGIN READ ONLY` and fetch `limit + 1` rows, so the cap never reorders a result; `EXPLAIN` and `SHOW` run
-  directly in the same read-only transaction.
-- **Client-side checks** give a fast, clear refusal and are not the safety boundary: the input is exactly one
-  statement, found by a tokenizer that understands quotes, dollar quotes and comments, and its first keyword is
-  one of the six above. There is no keyword denylist.
+- **Connection.** `--service` is required, must be a plain name (letters, digits, `_`, `.`, `-`) and names an
+  entry in the libpq service file (`~/.pg_service.conf` or `$PGSERVICEFILE`); passwords stay in `~/.pgpass`.
+  There is no default service.
+- **One read-only transaction that never commits.** `psql -X` opens `BEGIN READ ONLY`, sets `statement_timeout`
+  (`--timeout`, default 60 s, ceiling 600 s), `lock_timeout` (5 s) and `standard_conforming_strings` with
+  `SET LOCAL`, so a service entry's own `options` cannot drop them, runs the statement, and always ends with
+  `ROLLBACK`: a read has nothing to commit, and anything a statement still manages to change is undone.
+  `PGOPTIONS` repeats the read-only default and the timeouts for the connection, and `PGAPPNAME` names it
+  `pg-read`. `SELECT`, `WITH`, `VALUES` and `TABLE` statements run through a cursor and fetch `limit + 1` rows, so
+  the cap never reorders a result; `EXPLAIN` and `SHOW` run directly in the same transaction.
+- **The client check carries weight too.** A second statement in the same call would run in the same session,
+  so the input must be exactly one statement, found by a tokenizer that follows PostgreSQL's lexical rules
+  (quotes, dollar quotes, nested comments, non-ASCII identifier characters), and its first keyword must be one of
+  the six above. There is no keyword denylist.
 - **Row cap.** `--limit` defaults to 100, must be a positive integer and has a ceiling of 10 000. When `limit + 1`
   rows come back, the extra row is dropped and the summary says the output was truncated.
 - **Masking.** Cells in columns whose name matches `PG_READ_MASK_COLUMNS` (default: e-mail, phone, password,
@@ -207,14 +211,16 @@ Later, on request.
   `${XDG_STATE_HOME:-~/.local/state}/pg-read/audit.jsonl`, created with mode 0600: time, service, masked
   statement, limit, rows, truncation, duration, outcome and reason, and whether output was unmasked. Results are
   never logged. If the log cannot be written, the statement does not run.
-- **Output.** CSV on stdout, a one-line summary on stderr.
+- **Output.** CSV on stdout, quoted the way psql quotes its own CSV (NULL and an empty string both print as an
+  empty cell), and a one-line summary on stderr.
 - **Exit codes.** 0 success; 1 refused by pg-read; 2 usage or configuration error; 3 the statement failed on the
   server, including the server's own read-only refusal.
 - **Tests.** Unit tests run against a fake `psql` that records its arguments and environment. Integration tests
   start a throwaway cluster with `initdb` on a Unix socket in a temporary directory and show that the server
   refuses a write hidden in a CTE, `SELECT … INTO`, `nextval()`, `EXPLAIN ANALYZE` of a write and a `set_config`
-  of the read-only setting, even on a superuser connection; that the timeout fires; and that `ORDER BY` survives
-  the row cap. They skip without `initdb` on `PATH` unless `PG_READ_REQUIRE_INTEGRATION=1`.
+  of the read-only setting, even on a superuser connection; that `EXPLAIN ANALYZE` of `SELECT … INTO` leaves no
+  table behind; that the timeout fires, also for a service entry with its own `options`; and that `ORDER BY`
+  survives the row cap. They skip without `initdb` on `PATH` unless `PG_READ_REQUIRE_INTEGRATION=1`.
 
 ### 12.2 `tools/aws-guard`
 
@@ -223,8 +229,10 @@ it otherwise:
 
 1. **Never**, whatever the target: calls that print secret material or credentials (Secrets Manager values, SSM
    parameter values, KMS decrypt, STS credential calls, ECR login, SSO role credentials, IAM access keys,
-   `s3 presign`, `configure`), and any call with `--endpoint-url`, which would sign the request, session token
-   included, for another host.
+   `s3 presign`, `configure` and similar calls in other services; the list is not exhaustive), any call with
+   `--endpoint-url` or `--debug`, and any call while `AWS_ENDPOINT_URL` or a service-specific
+   `AWS_ENDPOINT_URL_*` is set. A flag given as an unambiguous prefix, which the AWS CLI accepts, counts as the
+   full flag.
 2. `lambda get-function` and `get-function-configuration` only with `--query`, because their full output includes
    the function's environment variables.
 3. **Reads run anywhere**: operations named `describe-*`, `get-*`, `list-*`, `batch-get-*`, `head-*` or
