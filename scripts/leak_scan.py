@@ -163,10 +163,23 @@ def scan_staged(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
         yield from scan_file(name, run_git_bytes(repo, "show", f":{name}"), private)
 
 
+def scan_identities(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
+    """Author and committer of every commit, against private patterns only: publishing a personal address is
+    the owner's choice, an employer's domain in the metadata is a leak."""
+    log = run_git(repo, "log", "--all", "--format=%H%x1f%an <%ae>%x1f%cn <%ce>")
+    for record in log.splitlines():
+        sha, *identities = record.split("\x1f")
+        for role, identity in zip(("<author>", "<committer>"), identities):
+            for index, pattern in enumerate(private, start=1):
+                if pattern.search(identity):
+                    yield Finding(role, 1, f"private#{index}", None, commit=sha[:12], private_line=True)
+
+
 def scan_history(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
-    """Every commit message and diff line on every ref. Line numbers index the log output."""
+    """Every commit message, diff line and identity on every ref. Line numbers index the log output."""
     if run_git(repo, "rev-parse", "--is-shallow-repository").strip() == "true":
         raise ScanError("history scan needs a full clone (in CI: actions/checkout with fetch-depth: 0)")
+    yield from scan_identities(repo, private)
     log = run_git(repo, "log", "--all", "-p", "--no-color", "--no-ext-diff", "--format=commit %H%n%B")
     commit, path, private_path = "?", MESSAGE, False
     for number, line in enumerate(log.splitlines(), start=1):
