@@ -283,5 +283,9 @@ class LeakScanTest(unittest.TestCase):
         assert_scan_error(self, scan(self.repo, "--tree"))
 
 
+    def test_history_names_files_with_non_ascii_names_and_spaces(self):
+        commit_file(self.repo, "\u00fc notes.md", "leak " + HOME_PATH + "\n")
+        self.assertIn(":\u00fc notes.md:1: home-path", scan(self.repo, "--history").stdout)
+
 if __name__ == "__main__":
     unittest.main()

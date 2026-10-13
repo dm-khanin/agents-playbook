@@ -338,5 +338,18 @@ class SlackPrefetchTest(unittest.TestCase):
         self.assertEqual(hook["timeout"], 90)
         self.assertTrue(hook["command"].endswith("|| true"))
 
+    def test_a_token_file_owned_by_someone_else_is_refused(self):
+        path = self.tmp / "token"
+        path.write_text("from-file\n", encoding="utf-8")
+        path.chmod(0o600)
+        original = sp.os.getuid
+        sp.os.getuid = lambda: path.stat().st_uid + 1
+        try:
+            token, problem = sp.load_token({"SLACK_PREFETCH_TOKEN_FILE": str(path)})
+        finally:
+            sp.os.getuid = original
+        self.assertIsNone(token)
+        self.assertIn("owned by", problem)
+
 if __name__ == "__main__":
     unittest.main()

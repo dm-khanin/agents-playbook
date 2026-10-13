@@ -115,5 +115,27 @@ class InstallTest(unittest.TestCase):
         self.assertIn("not a git work tree", result.stderr)
 
 
+    def test_install_leaves_git_configuration_alone(self):
+        self.install(str(self.repo))
+        self.assertEqual(git(self.repo, "config", "--get", "core.hooksPath", check=False).stdout, "")
+
+    def test_an_equivalent_ignore_rule_is_respected(self):
+        (self.repo / ".gitignore").write_text("*.local\n", encoding="utf-8")
+        self.install(str(self.repo))
+        self.assertEqual((self.repo / ".gitignore").read_text(encoding="utf-8"), "*.local\n")
+
+    def test_a_tracked_private_list_is_reported(self):
+        (self.repo / ".leakguard.local").write_text("x\n", encoding="utf-8")
+        git(self.repo, "add", "-f", ".leakguard.local")
+        git(self.repo, "commit", "-q", "-m", "oops")
+        result = self.install(str(self.repo))
+        self.assertIn(".leakguard.local is tracked", result.stderr)
+
+    def test_the_ci_job_requires_private_patterns_on_tree_and_history(self):
+        text = (INSTALL.parent / "ci" / "leak-scan.yml").read_text(encoding="utf-8")
+        for needle in ("fetch-depth: 0", "--tree --require-private", "--history --require-private",
+                       "secrets.LEAKGUARD_PATTERNS"):
+            self.assertIn(needle, text)
+
 if __name__ == "__main__":
     unittest.main()
