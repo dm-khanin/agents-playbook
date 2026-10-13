@@ -78,3 +78,15 @@ partially staged file can be silently mangled by pre-commit tooling.
 **14. Persisted artefacts carry no local context.**
 No local-only paths, no ticket ids, names or dates in code comments: a comment states the durable technical reason.
 Provenance belongs in the commit, the pull request or the ticket.
+
+## Shipping
+
+**15. A green build is not a deploy.**
+A passing pipeline or a version string proves that something was built, not that it runs. After a deploy, find
+your own commit's identity in the running artefact on every instance and exercise one behaviour only the new code
+has. A zero-downtime cutover can keep answering from the old release for a while: the first check is provisional.
+
+**16. Prove "no behaviour change" with a fingerprint.**
+Green tests cover what they assert, not everything a refactor can change. Run the old and the new code on the same
+real input and compare a hash of the canonical result (sorted, normalised), next to the timings and the query
+plan. Equal hashes are the proof; a difference is a finding even when every test passes.

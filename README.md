@@ -16,7 +16,7 @@ history for anything that should not be published.
 
 | Kind | Item | What it does | Works with |
 |---|---|---|---|
-| Rules | [`global/AGENTS.md`](global/AGENTS.md) | 14 operating rules: evidence before claims, tests that can fail, scope, authority, delegation, change hygiene | Any harness with a global instructions file |
+| Rules | [`global/AGENTS.md`](global/AGENTS.md) | 16 operating rules: evidence before claims, tests that can fail, scope, authority, delegation, change hygiene, shipping | Any harness with a global instructions file |
 | Skill | [`vet-third-party-tool`](skills/vet-third-party-tool/SKILL.md) | Procedure for vetting a tool, binary, plugin or skill before installing it | Claude Code, OpenCode; others format-compatible, untested |
 | Skill | [`save-notes`](skills/save-notes/SKILL.md) | Keeps per-repository and cross-cutting session notes that the next session can pick up | Claude Code, OpenCode; others format-compatible, untested |
 | Skill | [`write-reliable-hooks`](skills/write-reliable-hooks/SKILL.md) | Hook failure modes measured in practice, and the kit that prevents them | Claude Code; others format-compatible, untested |
