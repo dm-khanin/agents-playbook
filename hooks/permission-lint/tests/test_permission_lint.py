@@ -144,5 +144,20 @@ class PermissionLintTest(unittest.TestCase):
             self.project = env_project
 
 
+    def test_a_rule_in_allow_and_ask_is_reported(self):
+        self.write(self.user, {"permissions": {"allow": ["Bash(git push *)"], "ask": ["Bash(git push *)"]}})
+        self.assertIn("Bash(git push *) is in both allow and ask; ask wins", self.lint())
+
+    def test_a_rule_in_ask_and_deny_is_reported(self):
+        self.write(self.user, {"permissions": {"ask": ["Bash(rm *)"], "deny": ["Bash(rm *)"]}})
+        self.assertIn("Bash(rm *) is in both ask and deny; deny wins", self.lint())
+
+    def test_hooks_json_runs_only_at_startup_and_never_blocks(self):
+        config = json.loads((SCRIPT.parent / "hooks.json").read_text(encoding="utf-8"))
+        entry = config["hooks"]["SessionStart"][0]
+        self.assertEqual(entry["matcher"], "startup")
+        self.assertTrue(entry["hooks"][0]["command"].endswith("|| true"))
+        self.assertEqual(entry["hooks"][0]["timeout"], 10)
+
 if __name__ == "__main__":
     unittest.main()
