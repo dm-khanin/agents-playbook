@@ -100,6 +100,49 @@ class PermissionLintTest(unittest.TestCase):
         self.user.mkdir()
         self.assertEqual(self.lint(), "")
 
+    def finding_file(self) -> Path:
+        path = self.tmp / "with-finding.json"
+        self.write(path, {"permissions": {"allow": ["Bash(ls)", "Bash(ls)"]}})
+        return path
+
+    def test_odd_shapes_do_not_hide_findings_in_other_files(self):
+        odd = self.tmp / "odd.json"
+        for content in ({"permissions": []}, {"permissions": {"allow": "Bash"}}, {"permissions": {"allow": [1]}},
+                        [], "null"):
+            with self.subTest(content=content):
+                self.write(odd, content)
+                self.assertIn("Bash(ls) appears 2 times", self.lint(odd, self.finding_file()))
+
+    def test_an_undecodable_file_is_reported_without_hiding_other_findings(self):
+        self.user.write_bytes(b'{"permissions": {"allow": ["Bash(caf\xe9)"]}}')
+        self.write(self.shared, {"permissions": {"allow": ["Bash(ls)", "Bash(ls)"]}})
+        message = self.lint()
+        self.assertIn("not valid UTF-8", message)
+        self.assertIn("Bash(ls) appears 2 times", message)
+
+    def test_a_deeply_nested_file_is_reported(self):
+        deep = self.tmp / "deep.json"
+        self.write(deep, "[" * 100_000 + "]" * 100_000)
+        message = self.lint(deep, self.finding_file())
+        self.assertIn("could not be parsed", message)
+        self.assertIn("Bash(ls) appears 2 times", message)
+
+    def test_an_explicit_file_that_cannot_be_read_is_reported(self):
+        directory = self.tmp / "a-directory"
+        directory.mkdir()
+        message = self.lint(self.tmp / "missing.json", directory, self.finding_file())
+        self.assertEqual(message.count("cannot be read"), 2)
+        self.assertIn("Bash(ls) appears 2 times", message)
+
+    def test_a_project_directory_equal_to_home_is_read_once(self):
+        self.write(self.user, {"permissions": {"allow": ["Bash(ls)", "Bash(ls)"]}})
+        env_project = self.project
+        self.project = self.home
+        try:
+            self.assertEqual(self.lint().count("~/.claude/settings.json"), 1)
+        finally:
+            self.project = env_project
+
 
 if __name__ == "__main__":
     unittest.main()
