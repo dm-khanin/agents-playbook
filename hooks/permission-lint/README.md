@@ -17,7 +17,12 @@ unit-tested). Claude Code only: the permission format is Claude Code's.
 
 It reads `~/.claude/settings.json` and the project's `.claude/settings.json` and `.claude/settings.local.json`.
 Whether an MCP tool named in a rule exists is not checked: a hook has no live tool registry to compare against.
-The path-rule behaviour is from the Claude Code permissions documentation, checked against version 2.1.296.
+A file that is not valid UTF-8 or cannot be parsed is reported instead of skipped.
+
+Claude Code 2.1.296 itself warns at startup about the path rules (permissions documentation), and a broken
+`~/.claude/settings.json` cannot load this hook at all. The linter repeats those checks for the project files,
+non-interactive runs and older versions; the documentation does not mention repeated rules or allow/deny
+overlaps.
 
 ## Install
 

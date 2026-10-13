@@ -12,7 +12,8 @@ Whether an MCP tool named in a rule exists is not checked: a hook has no live to
 would go stale.
 
 Usage: permission_lint.py [FILE...]   (default: the user's and the project's settings files)
-Prints nothing when clean, otherwise {"systemMessage": ...}. Always exits 0: a linter must not break startup.
+Prints nothing when clean, otherwise {"systemMessage": ...}. A file it cannot read or parse is reported, not
+skipped, and so is an internal error. Always exits 0: a linter must not break startup.
 """
 from __future__ import annotations
 
@@ -41,16 +42,21 @@ def shorten(path: str) -> str:
     return "~" + path[len(home):] if path.startswith(home + os.sep) else path
 
 
-def lint_file(path: str) -> list[str]:
+def lint_file(path: str, explicit: bool = False) -> list[str]:
+    """Findings for one file. A file that is absent is a finding only when it was named explicitly."""
     try:
         with open(path, encoding="utf-8") as handle:
             raw = handle.read()
-    except OSError:
-        return []
+    except UnicodeDecodeError:
+        return ["is not valid UTF-8, so it could not be checked"]
+    except OSError as exc:
+        return [f"cannot be read: {exc.strerror}"] if explicit else []
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
         return [f"invalid JSON, so Claude Code ignores the whole file: {exc}"]
+    except (ValueError, RecursionError) as exc:
+        return [f"could not be parsed ({type(exc).__name__}), so it could not be checked"]
     permissions = data.get("permissions") if isinstance(data, dict) else None
     if not isinstance(permissions, dict):
         return []
@@ -77,7 +83,7 @@ def lint_file(path: str) -> list[str]:
 def main(argv: list[str]) -> None:
     lines = []
     for path in argv or default_files():
-        findings = lint_file(path)
+        findings = lint_file(path, explicit=bool(argv))
         if findings:
             lines.append(f"  {shorten(path)}")
             lines += [f"    - {finding}" for finding in findings]
@@ -88,6 +94,6 @@ def main(argv: list[str]) -> None:
 if __name__ == "__main__":
     try:
         main(sys.argv[1:])
-    except Exception:  # noqa: BLE001 - a linter must never break session start
-        pass
+    except Exception as exc:  # noqa: BLE001 - never break session start, but never fail silently either
+        print(json.dumps({"systemMessage": f"Permission-rule linter failed: {type(exc).__name__}: {exc}"}))
     sys.exit(0)
