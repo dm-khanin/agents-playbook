@@ -282,4 +282,4 @@ output shape.
 - [x] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
 - [x] Both new skills load in Claude Code and in OpenCode.
 - [x] Every new README block runs as written in an empty `HOME`.
-- [ ] CI is green on the pushed branch.
+- [x] CI is green on the pushed branch.
