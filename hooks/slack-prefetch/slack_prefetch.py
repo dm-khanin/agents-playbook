@@ -117,6 +117,8 @@ def load_token(env) -> tuple[str | None, str | None]:
     path = Path(env.get("SLACK_PREFETCH_TOKEN_FILE") or config / "slack-prefetch" / "token")
     if not path.is_file():
         return None, None
+    if path.stat().st_uid != os.getuid():
+        return None, f"token file {path} is owned by another user"
     if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         return None, f"token file {path} is readable by others; chmod 600 it"
     return path.read_text(encoding="utf-8").strip() or None, None

@@ -28,11 +28,15 @@ fi
 
 ignore="$top/.gitignore"
 touch "$ignore"
-if ! grep -qxF '.leakguard.local' "$ignore"; then
+if ! git -C "$top" check-ignore -q .leakguard.local; then
   if [ -s "$ignore" ] && [ -n "$(tail -c 1 "$ignore")" ]; then
     printf '\n' >> "$ignore"
   fi
   printf '%s\n' '.leakguard.local' >> "$ignore"
+fi
+
+if git -C "$top" ls-files --error-unmatch .leakguard.local >/dev/null 2>&1; then
+  echo "leak-guard: WARNING: .leakguard.local is tracked by git; remove it from the index and the history before publishing" >&2
 fi
 
 cat <<EOF

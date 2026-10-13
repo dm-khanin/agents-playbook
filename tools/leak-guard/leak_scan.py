@@ -188,7 +188,9 @@ def scan_history(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
     if run_git(repo, "rev-parse", "--is-shallow-repository").strip() == "true":
         raise ScanError("history scan needs a full clone (in CI: actions/checkout with fetch-depth: 0)")
     yield from scan_identities(repo, private)
-    log = run_git(repo, "log", "--all", "-p", "--no-color", "--no-ext-diff", "--format=commit %H%n%B")
+    # Unquoted UTF-8 paths and fixed a/ b/ prefixes, whatever the user's core.quotePath or diff.noprefix say.
+    log = run_git(repo, "-c", "core.quotePath=false", "log", "--all", "-p", "--no-color", "--no-ext-diff",
+                  "--src-prefix=a/", "--dst-prefix=b/", "--format=commit %H%n%B")
     commit, path, old_path, private_path = "?", MESSAGE, MESSAGE, False
     in_message = in_hunk = False
     number = old_line = new_line = 0
@@ -217,9 +219,9 @@ def scan_history(repo: Path, private: list[re.Pattern]) -> Iterator[Finding]:
         else:
             number = 0
             if line.startswith("--- a/"):
-                old_path = line[6:]
+                old_path = line[6:].rstrip("\t")
             elif line.startswith("+++ "):
-                path = line[6:] if line.startswith("+++ b/") else old_path
+                path = line[6:].rstrip("\t") if line.startswith("+++ b/") else old_path
                 private_path = is_private(path, private)
         yield from scan_line(path, number, line, private, commit, private_path)
 
