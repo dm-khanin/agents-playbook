@@ -44,8 +44,11 @@ DeepSeek Harness reads `~/.agents/AGENTS.md`. Claude Code is the exception and g
 
 - Skill `name` is 1-64 lowercase characters with hyphens and must equal the directory name. Optional frontmatter:
   `license`, `compatibility`, `metadata`.
-- `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` stops reading `.claude/skills`; `OPENCODE_DISABLE_CLAUDE_CODE=1` stops all
-  `.claude` support.
+- Checked on v2.0.26: a skill copied to `~/.agents/skills` is discovered and loads with no configuration.
+- v2 always reads `.claude/skills`. The v1 switches `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` and
+  `OPENCODE_DISABLE_CLAUDE_CODE` are absent from the v2.0.26 binary.
+- The `skill` permission decides what the model is offered. A `deny` for `*` followed by allows for chosen names
+  keeps unwanted skills out, and also hides every skill installed later until it is allowed by name.
 - `AGENTS.md` has no import syntax; extra instruction files go in the `instructions` array (paths, globs, URLs).
 - No shell hooks. Plugins in `~/.config/opencode/plugins/` export functions that receive
   `{project, client, $, directory, worktree}`; throwing in `tool.execute.before` blocks a tool call.

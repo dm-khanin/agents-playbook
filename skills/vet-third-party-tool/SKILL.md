@@ -5,7 +5,8 @@ description: Vet a third-party tool, binary, plugin, MCP server or agent skill b
 
 # Vet a third-party tool before installing it
 
-Works with: Claude Code (used); Gemini CLI, OpenCode, DeepSeek Harness (format-compatible, untested).
+Works with: Claude Code (used); OpenCode (discovered and loaded from `~/.agents/skills` in v2.0.26); Gemini CLI,
+DeepSeek Harness (format-compatible, untested).
 
 Goal: know what will run on this machine, with what access, and whether the artefact you install is the one its
 source describes. Report, then install only after the user chooses.

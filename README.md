@@ -17,8 +17,8 @@ history for anything that should not be published.
 | Kind | Item | What it does | Works with |
 |---|---|---|---|
 | Rules | [`global/AGENTS.md`](global/AGENTS.md) | 14 operating rules: evidence before claims, tests that can fail, scope, authority, delegation, change hygiene | Any harness with a global instructions file |
-| Skill | [`vet-third-party-tool`](skills/vet-third-party-tool/SKILL.md) | Procedure for vetting a tool, binary, plugin or skill before installing it | Claude Code; others format-compatible, untested |
-| Skill | [`save-notes`](skills/save-notes/SKILL.md) | Keeps per-repository and cross-cutting session notes that the next session can pick up | Claude Code; others format-compatible, untested |
+| Skill | [`vet-third-party-tool`](skills/vet-third-party-tool/SKILL.md) | Procedure for vetting a tool, binary, plugin or skill before installing it | Claude Code, OpenCode; others format-compatible, untested |
+| Skill | [`save-notes`](skills/save-notes/SKILL.md) | Keeps per-repository and cross-cutting session notes that the next session can pick up | Claude Code; OpenCode discovers it; others format-compatible, untested |
 | Hook | [`save-notes-on-push`](hooks/save-notes-on-push/) | After a successful `git push`, reminds the agent to save a note | Claude Code; DeepSeek Harness via its bridge, untested |
 | Hook | [`notify-telegram`](hooks/notify-telegram/) | Approve, always-allow or deny permission prompts from Telegram | Claude Code |
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |

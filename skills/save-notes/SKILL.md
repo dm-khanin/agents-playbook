@@ -6,7 +6,8 @@ description: Save or update a session note after meaningful work. Use when the u
 # Save a session note
 
 Works with: Claude Code (adapted from a slash command in daily use there; this skill form is lint-checked, not yet
-run); Gemini CLI, OpenCode, DeepSeek Harness (format-compatible, untested).
+run); OpenCode (discovered from `~/.agents/skills` in v2.0.26, not yet run); Gemini CLI, DeepSeek Harness
+(format-compatible, untested).
 
 A session note is a short narrative of what was done and why, kept next to the code but out of git, so the next
 session (yours or another agent's) can pick up the reasoning instead of re-deriving it.
