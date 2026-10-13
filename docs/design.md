@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: v1 implemented · v2 specified in §12 · 2026-10
+Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · 2026-10
 
 ## 1. Purpose
 
@@ -172,8 +172,8 @@ default target, and pg-read leaves write refusal to the server.
 
 | Path | Source | Work |
 |---|---|---|
-| `tools/pg-read` | private read-only query wrapper | Rewrite in Python around `psql`, §12.1 |
-| `tools/aws-guard` | private cloud CLI guard | Rewrite in Python, §12.2 |
+| `tools/pg-read` | private read-only query wrapper | Rewrite in Python around `psql`, §12.1; specified, not yet built |
+| `tools/aws-guard` | private cloud CLI guard | Rewrite in Python, §12.2; specified, not yet built |
 | `hooks/permission-lint` | private SessionStart linter | Take; add tests, a `hooks.json` and a README, §12.3 |
 | `skills/write-reliable-hooks` | measured hook behaviour; the hook machinery of a private docs-sync system | Distil the failure modes and the kit that prevents them, §12.4 |
 | `skills/gate-a-deploy` | two private release-and-deploy skills | Distil a platform-neutral checklist of release and deploy gates, §12.4 |
@@ -277,7 +277,7 @@ output shape.
 
 - [ ] Every new test was watched failing before its code existed, and a mutation of each guard rule turns a test
   red.
-- [ ] The pg-read integration suite passes locally and in CI, where `PG_READ_REQUIRE_INTEGRATION=1`.
+- [ ] The pg-read integration suite passes locally and in CI, where `PG_READ_REQUIRE_INTEGRATION=1` (with pg-read).
 - [ ] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
 - [ ] Both new skills load in Claude Code and in OpenCode.
 - [ ] Every new README block runs as written in an empty `HOME`.
