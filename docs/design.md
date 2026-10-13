@@ -276,10 +276,10 @@ output shape.
 
 ## 13. Verification before pushing v2
 
-- [ ] Every new test was watched failing before its code existed, and a mutation of each guard rule turns a test
+- [x] Every new test was watched failing before its code existed, and a mutation of each guard rule turns a test
   red.
 - [ ] The pg-read integration suite passes locally and in CI, where `PG_READ_REQUIRE_INTEGRATION=1` (with pg-read).
-- [ ] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
-- [ ] Both new skills load in Claude Code and in OpenCode.
-- [ ] Every new README block runs as written in an empty `HOME`.
+- [x] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
+- [x] Both new skills load in Claude Code and in OpenCode.
+- [x] Every new README block runs as written in an empty `HOME`.
 - [ ] CI is green on the pushed branch.
