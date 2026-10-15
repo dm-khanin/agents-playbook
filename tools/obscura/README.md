@@ -54,11 +54,16 @@ Gemini CLI, `~/.gemini/settings.json`:
 { "mcpServers": { "obscura": { "command": "obscura", "args": ["mcp"] } } }
 ```
 
-OpenCode, `~/.config/opencode/opencode.json`:
+OpenCode, `~/.config/opencode/opencode.json`. V2 nests the servers one level deeper, under `mcp.servers`; the
+`mcp.obscura` shape below is V1 and loads nothing:
 
 ```json
-{ "mcp": { "obscura": { "type": "local", "command": ["obscura", "mcp"], "enabled": true } } }
+{ "mcp": { "servers": { "obscura": { "type": "local", "command": ["/absolute/path/to/.local/bin/obscura", "mcp"] } } } }
 ```
+
+Write the absolute path. An agent started from a GUI inherits `PATH` from `launchd`, not from `~/.zshrc`, so the
+bare name resolves in a terminal and fails in the agent. The same applies to every other harness that does not go
+through a login shell.
 
 DeepSeek Harness, a row in `~/.dsh/cordis.patch.yml` (untested; check the patch syntax with
 `dsh <profile> --dump-config`):
@@ -93,6 +98,14 @@ obscura serve --font-dir ~/.local/share/obscura/fonts
 - Markdown and snapshot output can include elements hidden by CSS, such as a duplicated mobile menu.
 - Fixed and sticky elements can overlap after scrolling. For checks that must match Chrome pixel for pixel, use
   Playwright.
+- `mcp` takes no `--storage-dir` in v0.2.4 (`fetch` and `serve` do), so its cookie jar lives in the process and a
+  stdio server forgets every login the moment the agent session ends. Run `obscura mcp --http --port 3111` as a
+  daemon and point the client at `http://127.0.0.1:3111/mcp` — verified, that is the only path it serves — and the
+  jar survives until the daemon dies. There is no headed mode, so whatever logs in has to be the agent: for a
+  password the agent should not see, use a browser the user drives instead.
+- Leave `--stealth` off unless a site actually blocks you. On the stealth build the flag also switches on tracker
+  blocking, which silently removes third-party nodes from the DOM that snapshots, screenshots and PDF render, so
+  the difference shows up as a wrong answer rather than as an error.
 
 ## Test
 
