@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.agents/tools/usage-guard/guard.py\" check || true", "timeout": 5 },
+          { "type": "command", "command": "python3 \"$HOME/.agents/tools/usage-guard/guard.py\" wake", "asyncRewake": true, "timeout": 21600 }
+        ]
+      }
+    ]
+  }
+}

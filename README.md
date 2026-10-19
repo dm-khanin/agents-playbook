@@ -30,6 +30,7 @@ history for anything that should not be published.
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
 | Tool | [`leak-guard`](tools/leak-guard/) | Keeps private names out of a public repository: hooks and a CI job, with a private list that never enters the repo | Any git repository |
+| Tool | [`usage-guard`](tools/usage-guard/) | Pauses sessions at 97% of a claude.ai plan window and wakes them after the reset, with Telegram notices | Claude Code |
 
 ## Install on a new machine
 
