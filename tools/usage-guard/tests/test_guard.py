@@ -1,4 +1,4 @@
-import json, os, subprocess, sys, tempfile, time, unittest
+import json, os, shutil, subprocess, sys, tempfile, time, unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,17 +12,28 @@ class GuardCase(unittest.TestCase):
     """Runs guard.py as the hooks do — JSON on stdin, a fresh USAGE_GUARD_HOME — so no test touches real state."""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.home = Path(self.tmp.name)
-        self.env = dict(os.environ, USAGE_GUARD_HOME=self.tmp.name)
+        self.home = Path(tempfile.mkdtemp())
+        self.env = dict(os.environ, USAGE_GUARD_HOME=str(self.home))
         self.sent = self.home / 'sent.txt'
-        notifier = self.home / 'notify.sh'
-        notifier.write_text('#!/bin/sh\nprintf "%s\\n" "$1" >> "{}"\necho 200\n'.format(self.sent))
-        notifier.chmod(0o755)
-        self.config(resume_delay_s=0, resume_jitter_s=0, notify_command=[str(notifier)])
+        self.notifier = self.home / 'notify.sh'
+        self.notifier.write_text('#!/bin/sh\nprintf "%s\\n" "$1" >> "{}"\necho 200\n'.format(self.sent))
+        self.notifier.chmod(0o755)
+        self.config(resume_delay_s=0, resume_jitter_s=0)
 
     def tearDown(self):
-        self.tmp.cleanup()
+        # A detached notify child may still be logging into the directory; retry instead of racing it.
+        for _ in range(50):
+            try:
+                shutil.rmtree(str(self.home))
+                return
+            except FileNotFoundError:
+                return
+            except OSError:
+                time.sleep(0.1)
+        shutil.rmtree(str(self.home), ignore_errors=True)
+
+    def enable_notify(self):
+        self.config(notify_command=[str(self.notifier)])
 
     def config(self, **values):
         path = self.home / 'config.json'
@@ -146,13 +157,14 @@ class CheckTest(GuardCase):
         self.assertIn('error in check', (self.home / 'events.log').read_text())
 
     def test_notify_command_expands_home(self):
-        self.env['HOME'] = self.tmp.name
+        self.env['HOME'] = str(self.home)
         self.config(notify_command=['~/notify.sh'])
         self.feed(five=(99, int(time.time()) + 3600))
         self.check()
         self.assertEqual(len(self.sent_lines(expect=1)), 1)
 
     def test_pause_notification_goes_out_once_per_window_across_sessions(self):
+        self.enable_notify()
         self.feed(five=(99, int(time.time()) + 3600))
         for sid in ('s1', 's2', 's1'):
             self.check(sid)
@@ -242,6 +254,7 @@ class ProbeTest(GuardCase):
         self.assertIsNone(self.check('p2'))
 
     def test_probe_notifications_are_tagged(self):
+        self.enable_notify()
         self.run_guard('probe', 'p1', '--in', '120')
         self.check('p1')
         self.assertTrue(self.sent_lines(expect=1)[0].startswith('⏸ [probe] 5h'))
@@ -263,6 +276,7 @@ class WakeTest(GuardCase):
         self.assertLess(time.time() - started, 3)
 
     def test_wakes_after_the_reset_with_exit_2(self):
+        self.enable_notify()
         self.feed(five=(99, int(time.time()) + 3))
         self.check()
         started = time.time()
@@ -308,7 +322,7 @@ class WakeTest(GuardCase):
         code = ('import sys, time\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nimport guard\n'
                 'while time.time() < float(sys.argv[2]):\n    pass\n'
                 'print(guard.claim_marker(Path(sys.argv[3]), "s1"))\n')
-        procs = [subprocess.Popen([sys.executable, '-c', code, str(Path(GUARD).parent), str(start_at), self.tmp.name],
+        procs = [subprocess.Popen([sys.executable, '-c', code, str(Path(GUARD).parent), str(start_at), str(self.home)],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.env)
                  for _ in range(6)]
         results = sorted(p.communicate(timeout=30)[0].strip() for p in procs)
@@ -343,6 +357,7 @@ class WakeTest(GuardCase):
         self.assertTrue((self.home / 'paused' / 's1.json').exists())
 
     def test_probe_wakes_its_session(self):
+        self.enable_notify()
         self.run_guard('probe', 's1', '--in', '3')
         self.check()
         done = self.run_guard('wake', stdin=self.hook())
