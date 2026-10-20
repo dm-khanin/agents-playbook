@@ -26,6 +26,7 @@ history for anything that should not be published.
 | Hook | [`notify-telegram`](hooks/notify-telegram/) | Approve, always-allow or deny permission prompts from Telegram | Claude Code |
 | Hook | [`permission-lint`](hooks/permission-lint/) | At session start, reports permission rules that are never consulted, repeated, or overridden by a stronger list | Claude Code |
 | Hook | [`slack-prefetch`](hooks/slack-prefetch/) | Downloads the attachments of Slack threads linked in a prompt so the agent can read them | Claude Code; DeepSeek Harness via its bridge, untested |
+| Hook | [`copilot-on-push`](hooks/copilot-on-push/) | After a push to a branch with an open pull request, asks Copilot to review the new head; skips bump-only pull requests | Claude Code; DeepSeek Harness via its bridge, untested |
 | Tool | [`obscura`](tools/obscura/) | Setup guide for a light headless browser with MCP snippets for four harnesses, plus a font kit | Any MCP harness |
 | Tool | [`claude-chat-fetch`](tools/claude-chat-fetch/) | Turns one of your claude.ai conversations into Markdown an agent can read | Any harness with a shell |
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
@@ -61,7 +62,8 @@ Copying is the default. Symlinks are known to work in DeepSeek Harness, and Gemi
 | Gemini CLI | `~/.agents/AGENTS.md`, plus an `@` import of its absolute path in `~/.gemini/GEMINI.md` |
 
 **Hooks and tools.** Copy them to `~/.agents/hooks/` and `~/.agents/tools/`, where the shipped `hooks.json`
-snippets point, and follow each item's README for settings and MCP configuration.
+snippets point. The hooks that react to `git push` also need `hooks/lib/` copied next to them. Follow each
+item's README for settings and MCP configuration.
 
 ## How it is kept clean
 

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.agents/hooks/copilot-on-push/copilot-on-push.cjs\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
