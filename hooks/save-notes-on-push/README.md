@@ -22,7 +22,7 @@ Requires Node 18 or newer and the `save-notes` skill.
 
 ```sh
 mkdir -p ~/.agents/hooks
-cp -R hooks/save-notes-on-push ~/.agents/hooks/
+cp -R hooks/lib hooks/save-notes-on-push ~/.agents/hooks/
 ```
 
 Merge [`hooks.json`](hooks.json) into your harness settings (for Claude Code, the `hooks` key of
