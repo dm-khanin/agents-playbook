@@ -126,7 +126,8 @@ function viewPr(deps, dir) {
 function handle(input, deps = defaultDeps()) {
   if (input.tool_name !== 'Bash') return null;
   const tokens = pushTokens((input.tool_input || {}).command || '');
-  if (!tokens) return null;
+  // A dry run succeeds without pushing anything, so there is nothing new to review.
+  if (!tokens || tokens.includes('--dry-run') || tokens.includes('-n')) return null;
   const cwd = input.cwd || process.cwd();
   if (!path.isAbsolute(cwd)) return null;
   const dir = resolveRepoDir(tokens, cwd);
