@@ -110,6 +110,14 @@ test('stays silent for other tools and for commands without a git push', () => {
   }
 });
 
+test('stays silent for a dry-run push, which pushes nothing', () => {
+  for (const command of ['git push --dry-run', 'git push -n origin feature', 'git -C ../x push --dry-run']) {
+    const deps = fakeDeps();
+    assert.equal(hook.handle({ ...PUSH, tool_input: { command } }, deps), null, command);
+    assert.deepEqual(deps.calls, [], command);
+  }
+});
+
 test('stays silent outside a git repository and on a branch without a pull request', () => {
   const notRepo = fakeDeps({ head: { status: 128, stdout: '', stderr: 'not a git repository' } });
   assert.equal(hook.handle(PUSH, notRepo), null);
