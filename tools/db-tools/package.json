@@ -1,0 +1,13 @@
+{
+  "name": "db-tools",
+  "private": true,
+  "description": "Node dependencies of redis-query.sh",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "3.1.3",
+    "ioredis": "5.11.1"
+  }
+}

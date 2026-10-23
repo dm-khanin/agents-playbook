@@ -82,12 +82,14 @@ timeouts, masking, an audit trail, refusals with reasons. The boundary is elsewh
 read, a cloud account or role that cannot touch production. The harness allow rule goes on the guard, and the raw
 client stays behind a prompt.
 **Consequences.** Each guard's README says what it does not protect against.
-**Status.** `aws-guard` is specified in design §12.1 and not built yet.
+**Status.** `tools/db-tools` follows it: its README lists what it does not protect against. `aws-guard` is
+specified in design §12.1 and not built yet.
 
 ## D10. A guard has no default target
 
 **Context.** Agent wrappers often fall back to a default connection or profile, and a default tends to be
 whatever its author used most, often production.
-**Decision.** `aws-guard` sets no profile or region and leaves both to the environment.
+**Decision.** `tools/db-tools` requires `--profile` on every call; `aws-guard` sets no profile or region and leaves
+both to the environment.
 **Consequences.** One more flag per call, and no call reaches a system nobody named.
-**Status.** Specified, not built yet.
+**Status.** Followed by `tools/db-tools`; `aws-guard` is specified, not built yet.

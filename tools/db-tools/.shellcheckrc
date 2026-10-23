@@ -1,0 +1,4 @@
+# The scripts source their libraries by a path built from their own location; follow them from here.
+external-sources=true
+source-path=SCRIPTDIR
+source-path=SCRIPTDIR/..

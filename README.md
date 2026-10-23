@@ -33,6 +33,7 @@ history for anything that should not be published.
 | Tool | [`leak-guard`](tools/leak-guard/) | Keeps private names out of a public repository: hooks and a CI job, with a private list that never enters the repo | Any git repository |
 | Tool | [`usage-guard`](tools/usage-guard/) | Pauses sessions at 97% of a claude.ai plan window and wakes them after the reset, with Telegram notices | Claude Code |
 | Tool | [`copilot-review`](tools/copilot-review/) | Requests or re-requests a Copilot review on a pull request without the GitHub UI, and proves the request registered | Claude Code; any harness with a shell, untested |
+| Tool | [`db-tools`](tools/db-tools/) | Read-only query wrappers for PostgreSQL, MongoDB, Elasticsearch and Redis: no default target, capped and masked results, an audit line per call, and the server refusing writes where it can | Claude Code; any harness with a shell, untested |
 
 ## Install on a new machine
 
