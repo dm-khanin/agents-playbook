@@ -80,9 +80,10 @@ sql() {
     [ "$(sql "SELECT last_value FROM s")" = 1 ]
 }
 
-@test "server: what read-only mode allows is rolled back" {
+@test "server: a large object does not outlive the call" {
+    # Depending on the server version, lo_create is refused in a read-only transaction or runs and is rolled back.
     pg -q "SELECT lo_create(0)"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || [ "$status" -eq 3 ]
     [ "$(sql "SELECT count(*) FROM pg_largeobject_metadata")" = 0 ]
 }
 

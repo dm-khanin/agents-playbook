@@ -98,18 +98,18 @@ in_common() {
 }
 
 @test "audit: the log is created private, before anything runs" {
-    in_common 'log_ready && stat -f %Lp "$DBTOOLS_LOG_FILE" 2>/dev/null || stat -c %a "$DBTOOLS_LOG_FILE"'
-    [ "$output" = 600 ]
-    run bash -c "stat -f %Lp '$(dirname "$DBTOOLS_LOG_FILE")' 2>/dev/null || stat -c %a '$(dirname "$DBTOOLS_LOG_FILE")'"
-    [ "$output" = 700 ]
+    in_common 'log_ready'
+    [ "$status" -eq 0 ]
+    [ "$(mode_of "$DBTOOLS_LOG_FILE")" = 600 ]
+    [ "$(mode_of "$(dirname "$DBTOOLS_LOG_FILE")")" = 700 ]
 }
 
 @test "audit: a looser existing log is tightened to 600" {
     mkdir -p "$(dirname "$DBTOOLS_LOG_FILE")"
     : > "$DBTOOLS_LOG_FILE"
     chmod 644 "$DBTOOLS_LOG_FILE"
-    in_common 'log_ready && (stat -f %Lp "$DBTOOLS_LOG_FILE" 2>/dev/null || stat -c %a "$DBTOOLS_LOG_FILE")'
-    [ "$output" = 600 ]
+    in_common 'log_ready'
+    [ "$(mode_of "$DBTOOLS_LOG_FILE")" = 600 ]
 }
 
 @test "audit: a wrapper does not run when the log cannot be written" {

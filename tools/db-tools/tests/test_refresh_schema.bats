@@ -22,8 +22,8 @@ refresh() {
     [ "$status" -eq 0 ]
     grep -q 'CREATE TABLE public.users' "$DBTOOLS_SCHEMA_DIR/P/postgres.sql"
     grep -q '## users' "$DBTOOLS_SCHEMA_DIR/P/mongo.md"
-    [ "$(stat -f %Lp "$DBTOOLS_SCHEMA_DIR/P/postgres.sql" 2>/dev/null || stat -c %a "$DBTOOLS_SCHEMA_DIR/P/postgres.sql")" = 600 ]
-    [ "$(stat -f %Lp "$DBTOOLS_SCHEMA_DIR/P" 2>/dev/null || stat -c %a "$DBTOOLS_SCHEMA_DIR/P")" = 700 ]
+    [ "$(mode_of "$DBTOOLS_SCHEMA_DIR/P/postgres.sql")" = 600 ]
+    [ "$(mode_of "$DBTOOLS_SCHEMA_DIR/P")" = 700 ]
 }
 
 @test "pg_dump dumps the schema only, with the password in its environment" {

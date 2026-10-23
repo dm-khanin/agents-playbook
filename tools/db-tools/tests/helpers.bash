@@ -82,6 +82,12 @@ not_called() {
     [ ! -e "$DBTESTDIR/$1.json" ]
 }
 
+# mode_of PATH — the permission bits as octal digits. Not stat: its flags differ between BSD and GNU, and
+# GNU stat -f succeeds with something else entirely.
+mode_of() {
+    python3 -I -c 'import os, sys; print(format(os.stat(sys.argv[1]).st_mode & 0o777, "o"))' "$1"
+}
+
 # last_audit FILTER — jq -e FILTER over the last audit line.
 last_audit() {
     tail -n 1 "$DBTOOLS_LOG_FILE" | jq -e "$1" > /dev/null
