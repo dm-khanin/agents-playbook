@@ -36,7 +36,17 @@ jobs:
           node-version: 22
       - name: Skill lint
         run: python3 scripts/skill_lint.py
+      - name: Test dependencies
+        # bats for shell suites, the preinstalled PostgreSQL's initdb for db-tools' server tests, and the Node
+        # dependencies db-tools declares.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bats
+          ls -d /usr/lib/postgresql/*/bin | sort -V | tail -n 1 >> "$GITHUB_PATH"
+          npm ci --prefix tools/db-tools --omit=dev --ignore-scripts
       - name: Tests
+        env:
+          DBTOOLS_REQUIRE_INTEGRATION: "1"
         run: sh scripts/run-tests.sh
       - name: shellcheck
         run: git ls-files -z '*.sh' '.githooks/*' 'tools/leak-guard/githooks/*' | xargs -0 shellcheck

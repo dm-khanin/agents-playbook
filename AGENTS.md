@@ -31,7 +31,8 @@ You are adding to a public catalog of agent rules, skills, tools and hooks. Ever
     python3 scripts/skill_lint.py
     sh scripts/run-tests.sh
 
-All three must pass. The test runner sees tracked files only, so stage new tests first. If the leak scan flags
+All three must pass. The test runner sees tracked files only, so stage new tests first, and it needs `bats` for
+the shell suites. If the leak scan flags
 something that is genuinely fine, add an exact `<path> <pattern-id>` line to `.leakguard-allow` and give the
 reason in the commit message, describing the match in words: the history scan reads commit messages too, so
 quoting the flagged string there is a new finding. A private-pattern match is never allowed: remove the content.

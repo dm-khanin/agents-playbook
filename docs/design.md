@@ -121,8 +121,11 @@ One workflow on every push and pull request:
 1. `tools/leak-guard/leak_scan.py` over the tree and history, public and private patterns, plus gitleaks.
 2. `scripts/skill_lint.py`: frontmatter present, `name` rules from §4, directory depth.
 3. `shellcheck` on shell scripts.
-4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
-   built-in test runner, so CI has no dependency installs beyond what a tool already declares.
+4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library, Node's
+   built-in test runner and bats for shell tools, so CI installs nothing beyond bats and what a tool declares.
+5. Integration tests that need a real service start a throwaway one themselves and skip when its binaries are
+   missing. CI puts the binaries on `PATH` and sets the tool's `*_REQUIRE_INTEGRATION` variable, so a skip there
+   fails the job instead of passing silently. `tools/db-tools` does this with `initdb`.
 
 Each check has a negative test: a fixture that must fail. A check that cannot go red protects nothing.
 
