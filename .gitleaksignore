@@ -1,0 +1,3 @@
+# Findings that are fixtures, by gitleaks fingerprint (commit:path:rule:line). The commit is already public.
+# A made-up hex string in a masking test, flagged as generic-api-key because of the word before it.
+59427e08d530274eff4890db2650a788b2273f8a:tools/db-tools/tests/test_mask.py:generic-api-key:48

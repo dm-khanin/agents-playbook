@@ -45,7 +45,7 @@ class OtherPersonalData(unittest.TestCase):
         self.assertEqual(mask("id=14155551234"), "id=14155551234")
 
     def test_long_hex_tokens_keep_four_and_four(self):
-        self.assertEqual(mask("token=abcdef0123456789abcdef0123456789abcdef"), "token=abcd****cdef")
+        self.assertEqual(mask("digest abcdef0123456789abcdef0123456789abcdef"), "digest abcd****cdef")
 
     def test_short_hex_and_objectids_are_not_tokens(self):
         self.assertEqual(mask("color=abcdef"), "color=abcdef")
