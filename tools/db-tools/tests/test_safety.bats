@@ -203,9 +203,15 @@ refused_with() {
 
 @test "mongo: the driver handle is refused however it is spelled" {
     run mongo_reject_reason 'db.getMongo()["_serviceProvider"].dropCollection("db", "coll")'
+    refused_with driver-handle
+    run mongo_reject_reason 'db.getMongo()["_serviceProvider"]'
+    refused_with computed-member
+    run mongo_reject_reason 'db.getMongo()._serviceProvider'
     refused_with private-member
     run mongo_reject_reason '({"_serviceProvider": sp} = db.getMongo())'
-    refused_with private-member
+    refused_with destructuring
+    run mongo_reject_reason '([a, b] = x)'
+    refused_with destructuring
     run mongo_reject_reason '({"mongoClient": mc} = x)'
     refused_with driver-handle
     for name in runCommandWithCheck runCursorCommand clientBulkWrite initializeBulkOp dropCollection; do
@@ -230,6 +236,13 @@ refused_with() {
         run mongo_reject_reason "$q"
         [ "$status" -eq 0 ] || { echo "refused: $q -> $output"; false; }
     done
+}
+
+@test "mongo: a string that starts with an underscore is data, and comparisons are not assignments" {
+    run mongo_reject_reason 'db.videos.find({id: {$in: ["_x7Gq1abcde", "-k2m9zzzzzz"]}}, {_id: 0, id: 1})'
+    [ "$status" -eq 0 ]
+    run mongo_reject_reason 'db.c.find({}).toArray().filter(d => d.items[0] === 1 && d.n >= 2).map(d => ({a: d.a}))'
+    [ "$status" -eq 0 ]
 }
 
 @test "mongo: an unterminated literal is refused" {
