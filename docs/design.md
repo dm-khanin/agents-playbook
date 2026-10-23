@@ -1,6 +1,6 @@
 # agents-playbook: design
 
-Status: v1 implemented · v2 implemented except `pg-read` and `aws-guard`, which are specified in §12 and not yet built · v3 implemented (§14) · 2026-10
+Status: v1 implemented · v2 implemented except `aws-guard`, which is specified in §12.1 and not yet built · v3 implemented (§14) · 2026-10
 
 ## 1. Purpose
 
@@ -87,7 +87,7 @@ There are no per-harness top-level folders. Harness-specific material lives insi
 | `docs/decisions.md` | this design | Short decision records, see §8 |
 
 Out of v1: guarded read-only query wrappers for databases and a dev-only cloud CLI guard. The ideas are portable
-but each is a rewrite from scratch; v2 specifies them (§12.1–§12.2) and has not built them yet.
+but each is a rewrite from scratch; v2 specifies the cloud guard (§12.1) and has not built it yet.
 
 ## 6. Leak guard
 
@@ -123,9 +123,6 @@ One workflow on every push and pull request:
 3. `shellcheck` on shell scripts.
 4. Unit tests for `scripts/` and for each tool that has them, using the Python standard library and Node's
    built-in test runner, so CI has no dependency installs beyond what a tool already declares.
-5. Planned with pg-read (§12.1): integration tests that need a real service start a throwaway one themselves and skip when its binaries are
-   missing. CI puts the binaries on `PATH` and sets the tool's `*_REQUIRE_INTEGRATION` variable, so a skip there
-   fails the job instead of passing silently.
 
 Each check has a negative test: a fixture that must fail. A check that cannot go red protects nothing.
 
@@ -140,8 +137,7 @@ Each check has a negative test: a fixture that must fail. A check that cannot go
 7. Local hooks are the last gate before publication; CI is the backstop.
 8. Global rules are short directives, not prose.
 9. A guard is a second layer; the boundary is a database role or a cloud account.
-10. pg-read leaves write refusal to the server's read-only mode instead of a keyword list.
-11. A guard has no default target.
+10. A guard has no default target.
 
 ## 9. Adding content later
 
@@ -166,64 +162,23 @@ symlinks, the instruction is to copy.
 
 ## 12. v2 content
 
-The second iteration adds one hook, two skills and two rules, and specifies two guards to be rewritten from
-scratch, which are not built yet. The guards share
-the stance of D9–D11: they sit behind a database role or a cloud account rather than replace one, they have no
-default target, and pg-read leaves write refusal to the server.
+The second iteration adds one hook, two skills and two rules, and specifies a guard to be rewritten from scratch,
+which is not built yet. The guard takes the stance of D9–D10: it sits behind a cloud account rather than replace
+one, and it has no default target.
 
 | Path | Source | Work |
 |---|---|---|
-| `tools/pg-read` | private read-only query wrapper | Rewrite in Python around `psql`, §12.1; specified, not yet built |
-| `tools/aws-guard` | private cloud CLI guard | Rewrite in Python, §12.2; specified, not yet built |
-| `hooks/permission-lint` | private SessionStart linter | Take; add tests, a `hooks.json` and a README, §12.3 |
-| `skills/write-reliable-hooks` | measured hook behaviour; the hook machinery of a private docs-sync system | Distil the failure modes and the kit that prevents them, §12.4 |
-| `skills/gate-a-deploy` | two private release-and-deploy skills | Distil a platform-neutral checklist of release and deploy gates, §12.4 |
+| `tools/aws-guard` | private cloud CLI guard | Rewrite in Python, §12.1; specified, not yet built |
+| `hooks/permission-lint` | private SessionStart linter | Take; add tests, a `hooks.json` and a README, §12.2 |
+| `skills/write-reliable-hooks` | measured hook behaviour; the hook machinery of a private docs-sync system | Distil the failure modes and the kit that prevents them, §12.3 |
+| `skills/gate-a-deploy` | two private release-and-deploy skills | Distil a platform-neutral checklist of release and deploy gates, §12.3 |
 | `global/AGENTS.md`, rules 15–16 | the same sources | "A green build is not a deploy"; "prove no behaviour change with a fingerprint" |
 
 Out of v2: a Slack attachment prefetch hook, which needs its credential and cache handling reworked first; Mongo,
 Elasticsearch and Redis wrappers, which are tied to one data model; a post-merge follow-up queue, a large rewrite.
 Later, on request.
 
-### 12.1 `tools/pg-read` (specified, not yet built)
-
-`pg-read --service NAME [--limit N] [--timeout SECONDS] [--unmask] [-c SQL]` runs one read statement, given with
-`-c` or on stdin, and prints CSV.
-
-- **Connection.** `--service` is required, must be a plain name (letters, digits, `_`, `.`, `-`) and names an
-  entry in the libpq service file (`~/.pg_service.conf` or `$PGSERVICEFILE`); passwords stay in `~/.pgpass`.
-  There is no default service.
-- **One read-only transaction that never commits.** `psql -X` opens `BEGIN READ ONLY`, sets `statement_timeout`
-  (`--timeout`, default 60 s, ceiling 600 s), `lock_timeout` (5 s) and `standard_conforming_strings` with
-  `SET LOCAL`, so a service entry's own `options` cannot drop them, runs the statement, and always ends with
-  `ROLLBACK`: a read has nothing to commit, and anything a statement still manages to change is undone.
-  `PGOPTIONS` repeats the read-only default and the timeouts for the connection, and `PGAPPNAME` names it
-  `pg-read`. `SELECT`, `WITH`, `VALUES` and `TABLE` statements run through a cursor and fetch `limit + 1` rows, so
-  the cap never reorders a result; `EXPLAIN` and `SHOW` run directly in the same transaction.
-- **The client check carries weight too.** A second statement in the same call would run in the same session,
-  so the input must be exactly one statement, found by a tokenizer that follows PostgreSQL's lexical rules
-  (quotes, dollar quotes, nested comments, non-ASCII identifier characters), and its first keyword must be one of
-  the six above. There is no keyword denylist.
-- **Row cap.** `--limit` defaults to 100, must be a positive integer and has a ceiling of 10 000. When `limit + 1`
-  rows come back, the extra row is dropped and the summary says the output was truncated.
-- **Masking.** Cells in columns whose name matches `PG_READ_MASK_COLUMNS` (default: e-mail, phone, password,
-  secret, token, API key, IBAN, card) become `***`; an e-mail address in any other cell keeps two characters of
-  its local part and its domain. `--unmask` needs `PG_READ_ALLOW_UNMASK=1` and is recorded in the audit log.
-- **Audit log.** One JSON line per call, accepted or refused, in `$PG_READ_AUDIT_LOG` or
-  `${XDG_STATE_HOME:-~/.local/state}/pg-read/audit.jsonl`, created with mode 0600: time, service, masked
-  statement, limit, rows, truncation, duration, outcome and reason, and whether output was unmasked. Results are
-  never logged. If the log cannot be written, the statement does not run.
-- **Output.** CSV on stdout, quoted the way psql quotes its own CSV (NULL and an empty string both print as an
-  empty cell), and a one-line summary on stderr.
-- **Exit codes.** 0 success; 1 refused by pg-read; 2 usage or configuration error; 3 the statement failed on the
-  server, including the server's own read-only refusal.
-- **Tests.** Unit tests run against a fake `psql` that records its arguments and environment. Integration tests
-  start a throwaway cluster with `initdb` on a Unix socket in a temporary directory and show that the server
-  refuses a write hidden in a CTE, `SELECT … INTO`, `nextval()`, `EXPLAIN ANALYZE` of a write and a `set_config`
-  of the read-only setting, even on a superuser connection; that `EXPLAIN ANALYZE` of `SELECT … INTO` leaves no
-  table behind; that the timeout fires, also for a service entry with its own `options`; and that `ORDER BY`
-  survives the row cap. They skip without `initdb` on `PATH` unless `PG_READ_REQUIRE_INTEGRATION=1`.
-
-### 12.2 `tools/aws-guard` (specified, not yet built)
+### 12.1 `tools/aws-guard` (specified, not yet built)
 
 `aws-guard <service> <operation> [args…]` runs the AWS CLI when a call passes these checks in order, and refuses
 it otherwise:
@@ -248,7 +203,7 @@ refusal prints `aws-guard: refused <service> <operation>: <reason>` and exits 1,
 otherwise the exit code is the CLI's. Its README is to pair it with a harness rule that allows the guard and asks
 before plain `aws`. Tests run against a fake `aws`.
 
-### 12.3 `hooks/permission-lint`
+### 12.2 `hooks/permission-lint`
 
 A SessionStart hook that reads the user's and the project's Claude Code settings files and reports, through
 `systemMessage`, only defects it can prove from the files: invalid JSON, which makes Claude Code drop the whole
@@ -258,7 +213,7 @@ a rule repeated within one list; and a rule in both `allow` and `deny`. It is si
 never fails session start. Claude Code only. Tests cover each check, a clean file, a missing file and the
 output shape.
 
-### 12.4 Skills and rules
+### 12.3 Skills and rules
 
 - **`write-reliable-hooks`**, for writing or debugging an agent hook. The measured failure modes: exit code 2 from
   a prompt hook blocks the prompt, and some interpreters (python3, dash) exit 2 when they cannot find their script; the working directory
@@ -278,7 +233,6 @@ output shape.
 
 - [x] Every new test was watched failing before its code existed, and a mutation of each guard rule turns a test
   red.
-- [ ] The pg-read integration suite passes locally and in CI, where `PG_READ_REQUIRE_INTEGRATION=1` (with pg-read).
 - [x] Leak scan with the private patterns finds nothing in the tree or the history; every new file was read.
 - [x] Both new skills load in Claude Code and in OpenCode.
 - [x] Every new README block runs as written in an empty `HOME`.

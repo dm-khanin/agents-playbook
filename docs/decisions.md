@@ -77,30 +77,17 @@ lines.
 **Context.** An agent-facing wrapper decides from the command line: names, keywords, flags. An agent that is
 confused, or a prompt that steers it, can call the raw client instead, and a name check cannot know what a name
 really points at.
-**Decision.** `pg-read` and `aws-guard` present themselves as defence in depth and ergonomics: row caps,
+**Decision.** An agent-facing guard presents itself as defence in depth and ergonomics: row caps,
 timeouts, masking, an audit trail, refusals with reasons. The boundary is elsewhere: a database role that can only
 read, a cloud account or role that cannot touch production. The harness allow rule goes on the guard, and the raw
 client stays behind a prompt.
 **Consequences.** Each guard's README says what it does not protect against.
-**Status.** The guards are specified in design §12.1–§12.2 and not built yet.
+**Status.** `aws-guard` is specified in design §12.1 and not built yet.
 
-## D10. pg-read trusts the server, not a keyword list
-
-**Context.** A keyword denylist rejects legitimate reads (a column called `vacuum`, a comment on the first line)
-and still misses writes that need no keyword, such as a function with side effects.
-**Decision.** Every statement runs in a read-only transaction whose timeouts are set inside it, and the
-transaction always ends with `ROLLBACK`, so PostgreSQL refuses writes and undoes anything that gets past that.
-The client checks that the input is one statement starting with a read keyword, with a tokenizer that follows
-PostgreSQL's lexical rules, because a second statement in the same call would run in the same session.
-**Consequences.** The guard is proven by integration tests against a real server, which CI requires to run, and
-the tokenizer is tested on the lexical cases where a looser one would disagree with the server.
-**Status.** Specified, not built yet.
-
-## D11. A guard has no default target
+## D10. A guard has no default target
 
 **Context.** Agent wrappers often fall back to a default connection or profile, and a default tends to be
 whatever its author used most, often production.
-**Decision.** `pg-read` requires `--service`; `aws-guard` sets no profile or region and leaves both to the
-environment.
+**Decision.** `aws-guard` sets no profile or region and leaves both to the environment.
 **Consequences.** One more flag per call, and no call reaches a system nobody named.
 **Status.** Specified, not built yet.
