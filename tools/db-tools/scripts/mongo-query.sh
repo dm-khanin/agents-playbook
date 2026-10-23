@@ -63,7 +63,7 @@ URI=$(mongo_with_read_preference "$URI")
 # The expression is printed through __dbtoolsPrint, so it must be one expression; a trailing ; is dropped.
 EXPRESSION=$(printf '%s' "$QUERY" | sed -E 's/[[:space:];]+$//')
 
-# shellcheck disable=SC2329 # run by run_captured
+# shellcheck disable=SC2317,SC2329 # run by run_captured
 run_mongosh() {
     DBTOOLS_MONGO_URI="$URI" DBTOOLS_LIMIT="$LIMIT" DBTOOLS_SKIP="${SKIP:-0}" DBTOOLS_MAX_TIME_MS="$MAX_TIME_MS" \
         mongosh --nodb --norc --quiet \

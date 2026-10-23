@@ -87,7 +87,7 @@ SPEC=$(jq -cn --arg op "$OP" --arg key "$KEY" --arg cmd "$CMD" --argjson args "$
      + (if $op == "cmd" then {cmd: $cmd, args: $args} else {} end)
      + (if $op == "scan" then {scan: {pattern: $pattern, count: $count, maxKeys: $maxKeys}} else {} end)')
 
-# shellcheck disable=SC2329 # run by run_captured
+# shellcheck disable=SC2317,SC2329 # run by run_captured
 run_node() {
     DBTOOLS_REDIS_URI="$URI" NODE_PATH="$NODE_MODULES" node "$DBTOOLS_DIR/lib/redis-exec.js" "$SPEC"
 }

@@ -96,7 +96,7 @@ case "$BASE_URL$API_KEY$CREDENTIAL" in
 esac
 
 # curl_quote VALUE — the value as a double-quoted curl config string.
-# shellcheck disable=SC2329 # used by curl_config
+# shellcheck disable=SC2317,SC2329 # used by curl_config
 curl_quote() {
     local value="$1"
     value=${value//\\/\\\\}
@@ -105,7 +105,7 @@ curl_quote() {
 }
 
 # curl_config SCHEME VALUE — the URL and the credentials as curl config lines.
-# shellcheck disable=SC2329 # read by curl through run_curl
+# shellcheck disable=SC2317,SC2329 # read by curl through run_curl
 curl_config() {
     local value="$2"
     printf 'url = %s\n' "$(curl_quote "$URL")"
@@ -127,7 +127,7 @@ else
 fi
 
 SCHEME="" VALUE=""
-# shellcheck disable=SC2329 # run by run_captured
+# shellcheck disable=SC2317,SC2329 # run by run_captured
 run_curl() {
     if [ "$METHOD" = POST ]; then
         curl -sS --path-as-is -X POST -K <(curl_config "$SCHEME" "$VALUE") -H "Content-Type: $CONTENT_TYPE" \

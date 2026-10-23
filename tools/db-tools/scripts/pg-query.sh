@@ -78,7 +78,7 @@ else
 fi
 PSQL_ARGS+=(-c 'ROLLBACK')
 
-# shellcheck disable=SC2329 # run by run_captured
+# shellcheck disable=SC2317,SC2329 # run by run_captured
 run_psql() {
     # run_captured runs this in a subshell, so the libpq variables, the password among them, reach psql and
     # nothing else this script runs.

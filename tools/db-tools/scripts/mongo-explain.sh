@@ -78,7 +78,7 @@ if (result.ok) {
   quit(1);
 }'
 
-# shellcheck disable=SC2329 # run by run_captured
+# shellcheck disable=SC2317,SC2329 # run by run_captured
 run_explain() {
     DBTOOLS_MONGO_URI="$URI" DBTOOLS_EXPLAIN_OP="$OP" DBTOOLS_EXPLAIN_COLLECTION="$COLLECTION" \
         DBTOOLS_EXPLAIN_SPEC="$SPEC" \

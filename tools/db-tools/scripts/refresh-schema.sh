@@ -58,7 +58,7 @@ failed() {
 
 if [ -n "$PG_URI" ]; then
     (parse_pg_uri "$PG_URI") || usage_error "${PROFILE}_PG_URI is not a postgres:// or postgresql:// URI with a host"
-    # shellcheck disable=SC2329 # run by run_captured, in a subshell: the password reaches pg_dump only
+    # shellcheck disable=SC2317,SC2329 # run by run_captured, in a subshell: the password reaches pg_dump only
     run_pg_dump() {
         parse_pg_uri "$PG_URI" || return "$EXIT_USAGE"
         PGAPPNAME=db-tools pg_dump --schema-only --no-owner --no-acl --no-comments
@@ -87,7 +87,7 @@ for (const name of db.getCollectionNames().filter((n) => !n.startsWith("system."
 }
 print(lines.join("\n"));'
     URI=$(mongo_with_read_preference "$MONGO_URI")
-    # shellcheck disable=SC2329 # run by run_captured
+    # shellcheck disable=SC2317,SC2329 # run by run_captured
     run_mongosh() {
         DBTOOLS_MONGO_URI="$URI" DBTOOLS_LIMIT=1 DBTOOLS_SKIP=0 DBTOOLS_MAX_TIME_MS=600000 \
             mongosh --nodb --norc --quiet \
