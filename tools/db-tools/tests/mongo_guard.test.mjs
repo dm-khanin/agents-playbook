@@ -71,9 +71,12 @@ function shell({ docs = [], mongoLacks = [], noDriver = false } = {}) {
   const reported = [];
   const context = vm.createContext({
     db: new Database(),
-    process: { env: { DBTOOLS_LIMIT: '3', DBTOOLS_SKIP: '0', DBTOOLS_MAX_TIME_MS: '600000' } },
+    process: {
+      env: { DBTOOLS_LIMIT: '3', DBTOOLS_SKIP: '0', DBTOOLS_MAX_TIME_MS: '600000' },
+      stderr: { write: (text) => reported.push(text) },
+    },
     print: (line) => printed.push(line),
-    console: { error: (line) => reported.push(line) },
+    console: { error: () => assert.fail('console.error goes to stdout in mongosh; the summary must not use it') },
     EJSON: {
       stringify: (value, options) => {
         assert.deepEqual({ ...options }, { relaxed: true }); // spread: the object comes from the context's realm
@@ -205,27 +208,27 @@ test('the printer prints a cursor as one line per document, at most --limit, and
   const s = guarded({ docs: [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }] });
   s.run('__dbtoolsPrint(db.aggregate([]))');
   assert.deepEqual(s.printed, ['{"a":1}', '{"a":2}', '{"a":3}']);
-  assert.deepEqual(s.reported, ['db-tools: 3 result(s); stopped at --limit 3, more exist']);
+  assert.deepEqual(s.reported, ['db-tools: 3 result(s); stopped at --limit 3, more exist\n']);
 });
 
 test('the printer says the limit was reached when a cursor ends exactly there', () => {
   const s = guarded({ docs: [{ a: 1 }, { a: 2 }, { a: 3 }] });
   s.run('__dbtoolsPrint(db.aggregate([]))');
-  assert.deepEqual(s.reported, ['db-tools: 3 result(s); reached --limit 3, there may be more']);
+  assert.deepEqual(s.reported, ['db-tools: 3 result(s); reached --limit 3, there may be more\n']);
 });
 
 test('the printer reports a short result plainly', () => {
   const s = guarded({ docs: [{ a: 1 }] });
   s.run('__dbtoolsPrint(db.aggregate([]))');
   assert.deepEqual(s.printed, ['{"a":1}']);
-  assert.deepEqual(s.reported, ['db-tools: 1 result(s)']);
+  assert.deepEqual(s.reported, ['db-tools: 1 result(s)\n']);
 });
 
 test('the printer prints arrays per element, scalars as one line, and undefined as nothing', () => {
   const s = guarded();
   s.run('__dbtoolsPrint(["a", "b", "c", "d"])');
   assert.deepEqual(s.printed, ['"a"', '"b"', '"c"']);
-  assert.deepEqual(s.reported, ['db-tools: 3 result(s); stopped at --limit 3, more exist']);
+  assert.deepEqual(s.reported, ['db-tools: 3 result(s); stopped at --limit 3, more exist\n']);
   s.run('__dbtoolsPrint(42)');
   s.run('__dbtoolsPrint(undefined)');
   assert.deepEqual(s.printed.slice(3), ['42']);
