@@ -55,6 +55,8 @@ const DBTOOLS_DRIVER_WRITE_METHODS = {
 };
 
 (() => {
+  // mongosh's console.error writes to stdout, between the documents; the summary goes to the real stderr.
+  const stderr = process.stderr;
   const limit = Number(process.env.DBTOOLS_LIMIT);
   const skip = Number(process.env.DBTOOLS_SKIP || 0);
   const maxTimeMS = Number(process.env.DBTOOLS_MAX_TIME_MS);
@@ -120,7 +122,7 @@ const DBTOOLS_DRIVER_WRITE_METHODS = {
   // A find() cursor ends at --limit on the server, so reaching it only says that more may exist.
   const report = (count, more) => {
     const cut = more ? `; stopped at --limit ${limit}, more exist` : count === limit ? `; reached --limit ${limit}, there may be more` : '';
-    console.error(`db-tools: ${count} result(s)${cut}`);
+    stderr.write(`db-tools: ${count} result(s)${cut}\n`);
   };
   const isCursor = (value) =>
     value !== null && typeof value === 'object' && typeof value.hasNext === 'function' && typeof value.next === 'function';
