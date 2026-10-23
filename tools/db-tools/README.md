@@ -158,14 +158,14 @@ Two layers stand between the expression and a write:
 
 1. A text check in `lib/safety.sh` looks at the expression twice. In the raw text, strings included, it refuses
    names a read never needs: `$out`, `$merge`, server-side JavaScript (`$where`, `$function`, `$accumulator`,
-   `mapReduce`), modules and the process (`require`, `load`, `process`), `constructor` and `prototype`, any name
-   that starts with an underscore other than `_id` (the shell's internals, the driver handle among them), and
-   the driver's own client and command runners. In the code alone, with strings, regular expressions and
-   comments blanked by [`lib/jsblank.py`](lib/jsblank.py), it refuses a second statement, `eval` and
-   `Function`, `this`, `global`, `Object` and `Reflect`, a write method called in any form (after whitespace or
-   a comment, with optional chaining, as a tagged template, through `call`, `apply` or `bind`), any computed
-   member or key other than a numeric index, and the replica set, sharding and stream helpers. A `;` or a `[`
-   inside a string or a regular expression is text.
+   `mapReduce`), modules and the process (`require`, `load`, `process`), `constructor` and `prototype`, and the
+   driver's own client and command runners. In the code alone, with strings, regular expressions and comments
+   blanked by [`lib/jsblank.py`](lib/jsblank.py), it refuses a second statement, `eval` and `Function`, `this`,
+   `global`, `Object` and `Reflect`, a write method called in any form (after whitespace or a comment, with
+   optional chaining, as a tagged template, through `call`, `apply` or `bind`), any computed member or key other
+   than a numeric index, destructuring assignment, any name that starts with an underscore other than `_id` (the
+   shell's internals, the driver handle among them), and the replica set, sharding and stream helpers. A `;`,
+   a `[` or a leading `_` inside a string or a regular expression is data.
 2. mongosh then runs [`lib/mongo-guard.js`](lib/mongo-guard.js) before the expression. It replaces every write
    method of the shell's `Collection`, `Database` and `Mongo` prototypes with one that throws, pins it so it
    cannot be put back, and refuses pipelines with `$out` or `$merge`; an alias, `call`, a sibling database, a

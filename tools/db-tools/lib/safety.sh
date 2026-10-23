@@ -42,9 +42,9 @@ readonly JS_END='([^A-Za-z0-9_$]|$)'
 # database user with only the read role is.
 #
 # Two views of the text. Names that must not appear at all are looked for in the raw text, strings included,
-# because a quoted key can still reach them ({"constructor": C} = x). The structure (calls, computed members,
-# a second statement) is checked on the code alone, from lib/jsblank.py, so that a ; or a [ inside a string
-# or a regular expression is not taken for code.
+# because a quoted key in a parameter pattern can still reach them (({"constructor": C}) => ...). The
+# structure (calls, computed members, destructuring, a second statement, internal names) is checked on the
+# code alone, from lib/jsblank.py, so that a ; a [ or an _ inside a string or a regular expression is data.
 mongo_reject_reason() {
     local raw code
     # One line, so a pattern also sees a name and its parenthesis on different lines.
@@ -70,12 +70,6 @@ mongo_reject_reason() {
     # prototype, which lead to Function and from there anywhere.
     if echo "$raw" | grep -qE "${JS_START}(require|load|import)[[:space:]]*\\(|${JS_START}(process|mainModule|constructor|prototype|getPrototypeOf|setPrototypeOf|defineProperty|defineProperties)${JS_END}"; then
         echo "shell-escape"
-        return 1
-    fi
-    # A name that starts with an underscore is one of the shell's internals, such as _serviceProvider, the
-    # driver handle, however it is written (._x, ["_x"], {_x: v}); _id is a field.
-    if echo "$raw" | grep -oE "${JS_START}_[A-Za-z0-9_$]*" | grep -qvE '(^|[^A-Za-z0-9_$])_id$'; then
-        echo "private-member"
         return 1
     fi
     # The driver behind the shell, its generic commands and the writes the shell API calls something else.
@@ -108,6 +102,18 @@ mongo_reject_reason() {
     if echo "$code" | grep -oE '[]A-Za-z0-9_$)][[:space:]]*(\?\.[[:space:]]*)?\[[^]]*\]?' | grep -qvE '\[[[:space:]]*[0-9]+[[:space:]]*\]$' \
         || echo "$code" | grep -qE '\{[[:space:]]*\[|,[[:space:]]*\[[^]]*\][[:space:]]*:'; then
         echo "computed-member"
+        return 1
+    fi
+    # A name in the code that starts with an underscore is one of the shell's internals, such as
+    # _serviceProvider, the driver handle; _id is a field. In a string it is data (video ids start with _),
+    # and a string cannot become a member name: computed members are refused above, destructuring below.
+    if echo "$code" | grep -oE "${JS_START}_[A-Za-z0-9_$]*" | grep -qvE '(^|[^A-Za-z0-9_$])_id$'; then
+        echo "private-member"
+        return 1
+    fi
+    # A destructuring assignment can pick any member by a quoted key: ({"_x": v} = obj).
+    if echo "$code" | grep -qE '[]}][[:space:]]*=([^=>]|$)'; then
+        echo "destructuring"
         return 1
     fi
     # Replica set, sharding and stream processing helpers administer the cluster.
