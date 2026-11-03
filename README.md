@@ -32,7 +32,7 @@ history for anything that should not be published.
 | Tool | [`statusline`](tools/statusline/) | Status line with branch, context use, rate limit, cost and duration | Claude Code |
 | Tool | [`leak-guard`](tools/leak-guard/) | Keeps private names out of a public repository: hooks and a CI job, with a private list that never enters the repo | Any git repository |
 | Tool | [`usage-guard`](tools/usage-guard/) | Pauses sessions at 97% of a claude.ai plan window and wakes them after the reset, with Telegram notices | Claude Code |
-| Tool | [`copilot-review`](tools/copilot-review/) | Requests or re-requests a Copilot review on a pull request without the GitHub UI, and proves the request registered | Claude Code; any harness with a shell, untested |
+| Tool | [`copilot-review`](tools/copilot-review/) | The Copilot review loop from a shell: request or re-request a review and prove it registered, wait for it, read the state and the findings hidden in the review body, answer and resolve each thread | Claude Code; any harness with a shell, untested |
 | Tool | [`db-tools`](tools/db-tools/) | Read-only query wrappers for PostgreSQL, MongoDB, Elasticsearch and Redis: no default target, capped and masked results, an audit line per call, and the server refusing writes where it can | Claude Code; any harness with a shell, untested |
 
 ## Install on a new machine
