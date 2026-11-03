@@ -17,7 +17,7 @@ for sdir in "$ROOT"/*/*/; do
   [ -d "$sdir" ] || continue
   session=$(basename "$sdir"); project=$(basename "$(dirname "$sdir")")
   t="$PROJECTS/$project/$session.jsonl"
-  [ -f "$t" ] && [ -n "$(find "$t" -mtime -"$DAYS")" ] || continue
+  if [ ! -f "$t" ] || [ -z "$(find "$t" -mtime -"$DAYS")" ]; then continue; fi
   find "$sdir" -exec touch -a {} + 2>/dev/null
 done
 exit 0
