@@ -34,6 +34,7 @@ history for anything that should not be published.
 | Tool | [`usage-guard`](tools/usage-guard/) | Pauses sessions at 97% of a claude.ai plan window and wakes them after the reset, with Telegram notices | Claude Code |
 | Tool | [`copilot-review`](tools/copilot-review/) | The Copilot review loop from a shell: request or re-request a review and prove it registered, wait for it, read the state and the findings hidden in the review body, answer and resolve each thread | Claude Code; any harness with a shell, untested |
 | Tool | [`db-tools`](tools/db-tools/) | Read-only query wrappers for PostgreSQL, MongoDB, Elasticsearch and Redis: no default target, capped and masked results, an audit line per call, and the server refusing writes where it can | Claude Code; any harness with a shell, untested |
+| Tool | [`keep-scratchpads`](tools/keep-scratchpads/) | A LaunchAgent that keeps the scratchpads of recent Claude Code sessions from being deleted by the macOS `/tmp` clean-up | Claude Code on macOS |
 
 ## Install on a new machine
 
