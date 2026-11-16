@@ -7,6 +7,8 @@ setup() {
     common_setup
     fake_client pg_dump
     answer pg_dump $'CREATE TABLE public.users (\n    id integer NOT NULL\n);\n'
+    fake_client psql
+    answer psql ""
     fake_client mongosh
     answer mongosh $'## users\n- count (estimated): 2\n- sample: {"_id":{"$oid":"507f1f77bcf86cd799439011"},"email":"alice@example.com"}\n'
 }
@@ -32,6 +34,34 @@ refresh() {
     recorded pg_dump '.argv == ["--schema-only", "--no-owner", "--no-acl", "--no-comments"]'
     recorded pg_dump '.env.PGPASSWORD == "pw-c41a" and .env.PGHOST == "example.com" and .env.PGAPPNAME == "db-tools"'
     not_called mongosh
+}
+
+@test "schemas the role may not use are skipped, quoted, and named at the top of the file" {
+    config 'P_PG_URI=postgresql://app:pw-c41a@example.com/shop'
+    answer psql $'cp_checkpoints\nOdd"Name\n'
+    refresh
+    [ "$status" -eq 0 ]
+    recorded pg_dump '.argv[4:] == ["--exclude-schema=\"cp_checkpoints\"", "--exclude-schema=\"Odd\"\"Name\""]'
+    [ "$(head -n 1 "$DBTOOLS_SCHEMA_DIR/P/postgres.sql")" = '-- skipped, no USAGE privilege: cp_checkpoints, Odd"Name' ]
+    grep -q 'CREATE TABLE public.users' "$DBTOOLS_SCHEMA_DIR/P/postgres.sql"
+    recorded psql '(.argv | index("ON_ERROR_STOP=1") != null) and (.argv[-1] | test("has_schema_privilege"))'
+    recorded psql '.env.PGPASSWORD == "pw-c41a" and .env.PGAPPNAME == "db-tools"'
+}
+
+@test "with every schema usable the dump has no header and no exclusions" {
+    config 'P_PG_URI=postgresql://h/shop'
+    refresh
+    recorded pg_dump '.argv | length == 4'
+    [ "$(head -n 1 "$DBTOOLS_SCHEMA_DIR/P/postgres.sql")" = 'CREATE TABLE public.users (' ]
+}
+
+@test "a failed privilege query exits 3 without running pg_dump" {
+    config 'P_PG_URI=postgresql://h/shop'
+    answer psql "" $'psql: error: connection failed\n' 2
+    refresh
+    [ "$status" -eq 3 ]
+    not_called pg_dump
+    [ ! -e "$DBTOOLS_SCHEMA_DIR/P/postgres.sql" ]
 }
 
 @test "the mongo sample is masked and keeps its ObjectId; the dump runs under the guard" {
