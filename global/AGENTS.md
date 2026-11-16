@@ -28,7 +28,9 @@ code on purpose and watch the test go red. Do the same for any acceptance check 
 **5. Explain what actually runs.**
 Plans, configs and code paths belong to exact inputs, not to the shape of the code. Reproduce with the real
 predicates, limits and environment, and find out when a field or mechanism started existing before reading
-meaning into its data.
+meaning into its data. A schema shows structure, not meaning: what an enum code, status number or type id stands
+for is defined in the application code (enums, constants, types), so read it there before filtering or interpreting
+by a value.
 
 ## Scope
 

@@ -112,7 +112,8 @@ refresh-schema.sh --profile STAGING
 
 It writes `postgres.sql` (`pg_dump --schema-only`) and `mongo.md` (each collection's estimated count, indexes
 and one sample document, masked) to `~/.local/share/db-tools/schema/STAGING/`. Most structural questions are
-answered there, at no cost to the database.
+answered there, at no cost to the database. The schema does not say what values mean: an enum code, status number or
+type id is defined in the application code, so read that enum or constant before you filter or interpret by it.
 
 ### PostgreSQL
 
