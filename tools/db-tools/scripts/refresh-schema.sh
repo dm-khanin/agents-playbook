@@ -58,10 +58,19 @@ failed() {
 
 if [ -n "$PG_URI" ]; then
     (parse_pg_uri "$PG_URI") || usage_error "${PROFILE}_PG_URI is not a postgres:// or postgresql:// URI with a host"
-    # shellcheck disable=SC2317,SC2329 # run by run_captured, in a subshell: the password reaches pg_dump only
+    # shellcheck disable=SC2317,SC2329 # run by run_captured, in a subshell: the password reaches psql and pg_dump only
     run_pg_dump() {
         parse_pg_uri "$PG_URI" || return "$EXIT_USAGE"
-        PGAPPNAME=db-tools pg_dump --schema-only --no-owner --no-acl --no-comments
+        # pg_dump aborts on the first schema the role may not use, so those are skipped and named in the file.
+        local unusable schema
+        unusable=$(PGAPPNAME=db-tools psql -X -q -A -t -v ON_ERROR_STOP=1 -c "SELECT nspname FROM pg_namespace
+            WHERE NOT has_schema_privilege(oid, 'USAGE') AND nspname NOT LIKE 'pg\_%' ORDER BY 1") || return
+        set --
+        while IFS= read -r schema; do
+            [ -z "$schema" ] || set -- "$@" "--exclude-schema=\"${schema//\"/\"\"}\""
+        done <<< "$unusable"
+        [ $# -eq 0 ] || echo "-- skipped, no USAGE privilege: ${unusable//$'\n'/, }"
+        PGAPPNAME=db-tools pg_dump --schema-only --no-owner --no-acl --no-comments "$@"
     }
     run_captured run_pg_dump
     if [ "$CLIENT_STATUS" -eq 0 ]; then
